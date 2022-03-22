@@ -1,3 +1,9 @@
+# macOS cruft
+**/.DS_Store
+
+# rsconnect files
+**/rsconnect
+
 # History files
 .Rhistory
 .Rapp.history
