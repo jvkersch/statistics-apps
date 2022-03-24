@@ -1,14 +1,8 @@
 library(shiny)
 library(plotly)
 
+# Load dataset
 needles <- read.table("./data/needles.txt", header = T, sep = "\t", dec = ".")
-nitrogen <- seq(1, 3, length.out = 50)
-phosphor <- seq(0.15, 0.40, length.out = 50)
-
-# Plotting grid
-X_nitrogen <- outer(nitrogen, rep(1, length(phosphor)))
-Y_phosphor <- outer(rep(1, length(nitrogen)), phosphor)
-
 
 create_model <- function(variables) {
   if (length(variables) == 0) {
@@ -19,17 +13,17 @@ create_model <- function(variables) {
   return(model)
 }
 
-create_surface <- function(model) {
+create_surface <- function(model, grid) {
   cs <- coef(model)
-  Z <- 0*X_nitrogen + cs["(Intercept)"] 
+  Z <- 0*grid$X + cs["(Intercept)"] 
   if (!is.na(cs["nitrogen"])) {
-    Z <- Z + cs["nitrogen"]*X_nitrogen
+    Z <- Z + cs["nitrogen"]*grid$X
   }
   if (!is.na(cs["phosphor"])) {
-    Z <- Z + cs["phosphor"]*Y_phosphor
+    Z <- Z + cs["phosphor"]*grid$Y
   }
   if (!is.na(cs["I(nitrogen * phosphor)"])) {
-    Z <- Z + cs["I(nitrogen * phosphor)"]*X_nitrogen*Y_phosphor
+    Z <- Z + cs["I(nitrogen * phosphor)"]*grid$X*grid$Y
   }
   return(Z)
 }
@@ -57,8 +51,14 @@ ui <- fluidPage(
 )
 
 server <- function(input, output, session) {
+  
+  # Plotting grid
+  nitrogen <- seq(1, 3, length.out = 50)
+  phosphor <- seq(0.15, 0.40, length.out = 50)
+  grid <- create_plotgrid(nitrogen, phosphor)
+  
   model <- reactive(create_model(input$variables))
-  Z <- reactive(create_surface(model()))
+  Z <- reactive(create_surface(model(), grid))
   
   output$plot <- renderPlotly(
     plot1 <- subplot(
