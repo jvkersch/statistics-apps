@@ -14,7 +14,12 @@ RUN R -e 'install.packages(c(\
             repos="https://packagemanager.rstudio.com/cran/__linux__/focal/2021-04-23"\
           )'
 
+# Add apps
 RUN rm -rf /srv/shiny-server/*
 ADD ./apps /srv/shiny-server/
 
-CMD ["/usr/bin/shiny-server"]
+# Set up entry point and config
+ADD ./conf /srv/conf
+COPY ./shiny-runwrapper.sh /srv
+
+CMD ["/srv/shiny-runwrapper.sh"]
