@@ -9,4 +9,4 @@ PORT="${PORT:-3838}"
 sed "s/PORT/$PORT/g" < /srv/conf/shiny-server-template.conf > /etc/shiny-server/shiny-server.conf
 
 # Run shiny
-exec /usr/bin/shiny-server
+su - shiny -c /usr/bin/shiny-server
