@@ -15,8 +15,7 @@ RUN R -e 'install.packages(c(\
           )'
 
 # Add apps
-RUN rm -rf /srv/shiny-server/*
-ADD ./apps /srv/shiny-server/
+ADD ./apps /srv/apps
 
 # Set up entry point and config
 ADD ./conf /srv/conf
