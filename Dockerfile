@@ -1,4 +1,4 @@
-# From the instructions in https://blog.sellorm.com/2021/04/25/shiny-app-in-docker/
+# Adapted from the instructions in https://blog.sellorm.com/2021/04/25/shiny-app-in-docker/
 
 FROM rocker/shiny:4.0.5
 
