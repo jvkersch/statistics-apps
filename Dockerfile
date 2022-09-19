@@ -6,13 +6,9 @@ RUN apt-get update && apt-get install -y \
     libcurl4-gnutls-dev \
     libssl-dev
 
-RUN R -e 'install.packages(c(\
-              "shiny", \
-              "shinydashboard", \
-              "ggplot2" \
-            ), \
-            repos="https://packagemanager.rstudio.com/cran/__linux__/focal/2021-04-23"\
-          )'
+# Install dependencies
+COPY ./install-requirements.R /srv
+RUN Rscript /srv/install-requirements.R
 
 # Add apps
 ADD ./apps /srv/apps
