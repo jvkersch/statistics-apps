@@ -19,7 +19,7 @@ ui <- fluidPage(
         sidebarPanel(
             selectInput("distribution",
                         "Population distribution",
-                        choices = c("Log-normal", "Normal", "Levy")),
+                        choices = c("Log-normal", "Normal", "Cauchy")),
             sliderInput("n",
                         "Number of data points per mean:",
                         min = 1,
@@ -51,10 +51,10 @@ prepare.normal <- function() {
               stdev=1))
 }
 
-prepare.levy <- function() {
-  return(list(samples=rlevy,
-              pdf=dlevy,
-              xmin=0.1,
+prepare.cauchy <- function() {
+  return(list(samples=rcauchy,
+              pdf=dcauchy,
+              xmin=-4,
               xmax=4,
               mean=NA,
               stdev=NA))
@@ -69,8 +69,8 @@ server <- function(input, output) {
         distdata <- prepare.lognormal()
       } else if (input$distribution == "Normal") {
         distdata <- prepare.normal()
-      } else if (input$distribution == "Levy") {
-        distdata <- prepare.levy()
+      } else if (input$distribution == "Cauchy") {
+        distdata <- prepare.cauchy()
       }
         
       sample.means <- rowMeans(matrix(distdata$samples(n*1000), ncol = n))
@@ -86,8 +86,13 @@ server <- function(input, output) {
       abline(v=distdata$mean)
       
       # Histogram of sample means
-      xlim.min <- min(xmin, quantile(sample.means, probs = 0.01))
-      xlim.max <- max(xmax, quantile(sample.means, probs = 0.99))
+      if (input$distribution != "Cauchy") {
+        xlim.min <- min(xmin, quantile(sample.means, probs = 0.01))
+        xlim.max <- max(xmax, quantile(sample.means, probs = 0.99))
+      } else {
+        xlim.min = min(sample.means)
+        xlim.max = max(sample.means)
+      }
       param <- fitdistr(sample.means, "normal")$estimate
       hist(sample.means, main = sprintf("Sample mean (n = %d)", n), 
            xlab = "", ylab = "", xlim = c(xlim.min, xlim.max), probability = TRUE)
