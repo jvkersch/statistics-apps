@@ -3,7 +3,9 @@ pkgs <- c(
   "shinydashboard",
   "ggplot2",
   "plotly",
-  "purrr"
+  "purrr",
+  "MASS",
+  "rmutil"
 )
 
 install.packages(
