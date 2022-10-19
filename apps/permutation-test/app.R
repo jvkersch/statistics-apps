@@ -10,9 +10,10 @@ ui <- fluidPage(titlePanel("Wilcoxon rank-sum test"),
                     selectInput(
                       "distributions",
                       "Distributions",
-                      choices=c("Well-separated"="separated",
-                                "Interleaved"="interleaved",
-                                "Overlapping"="overlapping")
+                      choices=c(
+                        "Separated"="separated",
+                        "Distinct"="distinct",
+                        "Interleaved"="interleaved")
                     ),
                     actionButton("step1", "Add 1 sample"),
                     br(),
@@ -25,27 +26,37 @@ ui <- fluidPage(titlePanel("Wilcoxon rank-sum test"),
                   mainPanel(plotOutput("plot"))
                 ))
 
-# Static data
+# Data generators
 
-generate.data.separated <- function() {
-  pop1 <- c(1, 2, 4, 4.8, 7.5)
-  pop2 <- c(3.5, 6, 8, 9, 10)
+make.data <- function(pop1, pop2) {
+  total.pop <- c(pop1, pop2)
   s <- sort(total.pop, index.return = TRUE)
   list(data=c(pop1, pop2)[s$ix],
-       mask=c(rep(TRUE, length(pop1)), rep(FALSE, length(pop2)))[s$ix],
+       mask=c(rep(TRUE, length(pop1)), 
+              rep(FALSE, length(pop2)))[s$ix],
        n1=length(pop1),
        n2=length(pop2))
 }
 
+generate.data.separated <- function() {
+  pop1 <- c(1, 2, 4, 4.8, 7.5)
+  pop2 <- c(3.5, 6, 8, 9, 10)
+  make.data(pop1, pop2)
+}
+
+generate.data.distinct <- function() {
+  pop1 <- c(1, 2, 3, 4, 5)
+  pop2 <- c(5.5, 6, 7, 9)
+  make.data(pop1, pop2)
+}
+
+generate.data.interleaved <- function() {
+  pop1 <- c(1, 3, 5, 7, 9)
+  pop2 <- c(2, 4, 6, 8)
+  make.data(pop1, pop2)
+}
+
 # Presenter code
-# 
-# prepare.colors <- function(n1, n2, groups, selected) {
-#   col <- rep("blue", length(groups))
-#   col[groups] <- "red"
-#   alphas <- rep(0.2, length(col))
-#   alphas[selected] <- 1.0
-#   alpha(col, alphas)
-# }
 
 prepare.colors <- function(groups) {
   ifelse(groups, "red", "blue")
@@ -57,28 +68,31 @@ apply.alpha <- function(colors, selected.indices) {
   alpha(colors, a)
 }
 
-
-# total.col <- c(rep("red", length(pop1)), rep("blue", length(pop2)))
-# 
-# total.pop <- s$x
-# total.col <- total.col[s$ix]
-# total.ranks <- seq(1, length(total.pop))
-# 
-# # W <- sum(s$ix[1:length(pop1)])
-W <- 19  # TODO
+# W-statistic tools
 
 run.w <- function(n1, n) {
   sample(seq(1, n), n1)
 }
 
+compute.w.statistic <- function(groups) {
+  ranks <- seq(1, length(groups))
+  sum(ranks[groups])
+}
+
+# Shiny code
+
 server <- function(input, output) {
   
-  ds <- generate.data.separated()
+  ds <- generate.data.interleaved()
+
   total.pop <- ds$data
   n1 <- ds$n1
   n2 <- ds$n2
   n <- n1 + n2
-  
+
+  W <- compute.w.statistic(ds$mask)
+  cat(file=stderr(), paste0("W = ", W, "\n"))
+    
   v <- reactiveValues(ranks = c(),
                       selected = seq(1, length(total.pop)),
                       nsamples = 0,
@@ -142,8 +156,8 @@ server <- function(input, output) {
     if (length(v$ranks) > 0) {
       n <- n1 + n2
       
-      xlim.min <- n1 * (n1 + 1) / 2
-      xlim.max <- n * (n + 1) / 2 - xlim.min
+      xlim.min <- n1 * (n1 + 1) / 2 - 1
+      xlim.max <- n * (n + 1) / 2 - n2 * (n2 + 1) / 2+ 1
       
       hist(
         v$ranks,
