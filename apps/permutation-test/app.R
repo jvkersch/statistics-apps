@@ -81,6 +81,8 @@ compute.w.statistic <- function(groups) {
 
 # Shiny code
 
+# TODO: split off plotting code, clean up huge mess with reactives and streamline variable names
+
 server <- function(input, output) {
 
   v <- reactiveValues()
