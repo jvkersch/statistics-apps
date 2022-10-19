@@ -95,6 +95,8 @@ server <- function(input, output) {
     )()
     
     # Initalize reactive context    
+    
+    # TODO: simply make bundle into a single reactive
     v$total.pop <- bundle$data
     v$groups <- bundle$mask
     v$n1 <- bundle$n1
@@ -102,6 +104,7 @@ server <- function(input, output) {
     v$n <- bundle$n1 + bundle$n2
     v$W <- compute.w.statistic(bundle$mask)    
     
+    # TODO split off state
     v$ranks = c()
     v$selected = seq(1, v$n)
     v$nsamples = 0
@@ -151,7 +154,7 @@ server <- function(input, output) {
       axes = FALSE,
       xlab = "",
       ylab = "",
-      pch = 21,
+      pch = ifelse(v$groups, 21, 22),
       bg = cols,
       cex = 3
     )
