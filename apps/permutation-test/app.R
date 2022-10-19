@@ -8,7 +8,7 @@ ui <- fluidPage(titlePanel("Wilcoxon rank-sum test"),
                 sidebarLayout(
                   sidebarPanel(
                     selectInput(
-                      "distributions",
+                      "distribution",
                       "Distributions",
                       choices=c(
                         "Separated"="separated",
@@ -82,36 +82,46 @@ compute.w.statistic <- function(groups) {
 # Shiny code
 
 server <- function(input, output) {
-  
-  ds <- generate.data.interleaved()
 
-  total.pop <- ds$data
-  n1 <- ds$n1
-  n2 <- ds$n2
-  n <- n1 + n2
-
-  W <- compute.w.statistic(ds$mask)
-  cat(file=stderr(), paste0("W = ", W, "\n"))
+  v <- reactiveValues()
+  observeEvent(input$distribution, {
+    bundle <- generate.data.interleaved()    
     
-  v <- reactiveValues(ranks = c(),
-                      selected = seq(1, length(total.pop)),
-                      nsamples = 0,
-                      pvalue = NA)
-  
+    bundle <- switch(
+      input$distribution,
+      "separated"=generate.data.separated,
+      "distinct"=generate.data.distinct,
+      "interleaved"=generate.data.interleaved
+    )()
+    
+    # Initalize reactive context    
+    v$total.pop <- bundle$data
+    v$groups <- bundle$mask
+    v$n1 <- bundle$n1
+    v$n2 <- bundle$n2
+    v$n <- bundle$n1 + bundle$n2
+    v$W <- compute.w.statistic(bundle$mask)    
+    
+    v$ranks = c()
+    v$selected = seq(1, v$n)
+    v$nsamples = 0
+    v$pvalue = 0
+  })
+    
   observeEvent(input$step1, {
-    s <- run.w(n1, n)
+    s <- run.w(v$n1, v$n)
     v$ranks <- c(v$ranks, sum(s))
     v$selected <- s
     v$nsamples <- length(v$ranks)
-    v$pvalue <- sum(v$ranks <= W) / length(v$ranks)
+    v$pvalue <- sum(v$ranks <= v$W) / max(1., length(v$ranks))
   })
   
   observeEvent(input$step100, {
-    ss <- replicate(100, run.w(n1, n))
+    ss <- replicate(100, run.w(v$n1, v$n))
     v$ranks <- c(v$ranks, colSums(ss))
     v$selected <- ss[,ncol(ss)]
     v$nsamples <- length(v$ranks)
-    v$pvalue <- sum(v$ranks <= W) / length(v$ranks)
+    v$pvalue <- sum(v$ranks <= v$W) / max(1., length(v$ranks))
   })
   
   output$nsamples <- renderText({
@@ -119,7 +129,7 @@ server <- function(input, output) {
   })
   
   output$pvalue <- renderText({
-    paste0("Proportion smaller than W: ", percent(v$pvalue))
+    paste0("Proportion smaller than W: ", percent(v$pvalue, accuracy = 0.01))
   })
   
   output$plot <- renderPlot({
@@ -130,12 +140,12 @@ server <- function(input, output) {
       byrow = TRUE
     ))
 
-    y <- rep(0, length(total.pop))
-    cols <- prepare.colors(ds$mask)
+    y <- rep(0, length(v$total.pop))
+    cols <- prepare.colors(v$groups)
     cols <- apply.alpha(cols, v$selected)
 
     plot(
-      total.pop,
+      v$total.pop,
       y,
       ylim = c(-1.5, 1.5),
       axes = FALSE,
@@ -146,15 +156,17 @@ server <- function(input, output) {
       cex = 3
     )
     text(
-      total.pop,
+      v$total.pop,
       y - 1.0,
-      labels = seq(1, length(total.pop)),
-      col = apply.alpha(rep("black", length(total.pop)), v$selected),
+      labels = seq(1, length(v$total.pop)),
+      col = apply.alpha(rep("black", length(v$total.pop)), v$selected),
       cex = 2
     )
     
     if (length(v$ranks) > 0) {
-      n <- n1 + n2
+      n <- v$n1 + v$n2
+      n1 <- v$n1
+      n2 <- v$n2
       
       xlim.min <- n1 * (n1 + 1) / 2 - 1
       xlim.max <- n * (n + 1) / 2 - n2 * (n2 + 1) / 2+ 1
@@ -176,7 +188,7 @@ server <- function(input, output) {
           lwd = 10,
           ticksize = 0.05,
           col = "red")
-      abline(v=W, col="blue", lwd=2)
+      abline(v=v$W, col="blue", lwd=2)
     }
   })
 }
