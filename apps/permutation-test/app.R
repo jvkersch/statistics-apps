@@ -87,7 +87,7 @@ server <- function(input, output) {
 
   v <- reactiveValues()
   observeEvent(input$distribution, {
-    bundle <- generate.data.interleaved()    
+
     
     bundle <- switch(
       input$distribution,
