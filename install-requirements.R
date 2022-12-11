@@ -1,11 +1,13 @@
 pkgs <- c(
   "shiny",
   "shinydashboard",
+  "formattable",
   "ggplot2",
   "plotly",
   "purrr",
   "MASS",
-  "rmutil"
+  "rmutil",
+  "scales"
 )
 
 install.packages(
