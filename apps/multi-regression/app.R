@@ -35,7 +35,8 @@ create_surface <- function(model, grid) {
 
 create_nitrogen_traces <- function(model) {
   nitrogen <- seq(1.0, 3.0, length.out = 10)
-  list(
+  data.frame(
+    nitrogen = nitrogen,
     trace1 = get_length(model, nitrogen, 0.15),
     trace2 = get_length(model, nitrogen, 0.20),
     trace3 = get_length(model, nitrogen, 0.25),
@@ -64,7 +65,7 @@ ui <- fluidPage(
                          fluidRow(
                            plotlyOutput('plot', height = "100%")),
                          fluidRow(
-                           plotlyOutput('plot_nitrogen_length', height = '100%'),
+                           plotlyOutput('plot_nitrogen_traces', height = '100%'),
                            plotlyOutput('plot_nitrogen_effect', height = '100%')                           
                          )),
                 tabPanel("Summary", verbatimTextOutput("summary")))
@@ -102,6 +103,15 @@ server <- function(input, output, session) {
   output$summary <- renderPrint(
     summary(model())
   )
+  output$plot_nitrogen_traces <- renderPlotly(
+    plot1 <- plot_ly(nitrogen_traces(), x = ~nitrogen, y = ~trace1,
+                     type = 'scatter', mode = 'lines', name = 'P = 0.15') %>%
+      add_trace(y = ~trace2, type = 'scatter', mode = 'lines', name = 'P = 0.20') %>%
+      add_trace(y = ~trace3, type = 'scatter', mode = 'lines', name = 'P = 0.25') %>%
+      add_trace(y = ~trace4, type = 'scatter', mode = 'lines', name = 'P = 0.30') %>%
+      layout(
+        xaxis = list(title = "Nitrogen"),
+        yaxis = list(title = "Length")))
 }
 
 shinyApp(ui, server)
