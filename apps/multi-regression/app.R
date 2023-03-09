@@ -33,6 +33,16 @@ create_surface <- function(model, grid) {
   get_length(model, grid$X, grid$Y)
 }
 
+create_nitrogen_traces <- function(model) {
+  nitrogen <- seq(1.0, 3.0, length.out = 10)
+  list(
+    trace1 = get_length(model, nitrogen, 0.15),
+    trace2 = get_length(model, nitrogen, 0.20),
+    trace3 = get_length(model, nitrogen, 0.25),
+    trace4 = get_length(model, nitrogen, 0.30)
+  )
+}
+
 ui <- fluidPage(
   headerPanel('Multiple Linear Regression'),
   sidebarPanel(
@@ -70,6 +80,7 @@ server <- function(input, output, session) {
   
   model <- reactive(create_model(input$variables))
   Z <- reactive(create_surface(model(), grid))
+  nitrogen_traces <- reactive(create_nitrogen_traces(model()))
   
   output$plot <- renderPlotly(
     plot1 <- subplot(
