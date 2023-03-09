@@ -50,7 +50,13 @@ ui <- fluidPage(
   ),
   mainPanel(
     tabsetPanel(type = "tabs",
-                tabPanel("Plot", plotlyOutput('plot', height = "100%")),
+                tabPanel("Plot", 
+                         fluidRow(
+                           plotlyOutput('plot', height = "100%")),
+                         fluidRow(
+                           plotlyOutput('plot_nitrogen_length', height = '100%'),
+                           plotlyOutput('plot_nitrogen_effect', height = '100%')                           
+                         )),
                 tabPanel("Summary", verbatimTextOutput("summary")))
   )
 )
