@@ -13,6 +13,14 @@ create_model <- function(variables) {
   return(model)
 }
 
+get_default <- function(coefs, name, default = 0) {
+  if (is.na(coefs[name])) {
+    default
+  } else {
+    coefs[name]
+  }
+}
+
 get_length <- function(model, nitrogen, phosphor) {
   cs <- coef(model)
   Z <- 0*nitrogen + cs["(Intercept)"] 
@@ -44,6 +52,19 @@ create_nitrogen_traces <- function(model) {
   )
 }
 
+create_nitrogen_effect <- function(model) {
+  phosphor <- seq(0.15, 0.35, length.out = 10)
+  
+  coefs <- coef(model)
+  beta_N <- get_default(coefs, "nitrogen")
+  beta_NP <- get_default(coefs, "I(nitrogen * phosphor)")
+
+  data.frame(
+    phosphor = phosphor,
+    effect = beta_N + beta_NP * phosphor
+  )
+}
+
 ui <- fluidPage(
   headerPanel('Multiple Linear Regression'),
   sidebarPanel(
@@ -65,8 +86,11 @@ ui <- fluidPage(
                          fluidRow(
                            plotlyOutput('plot', height = "100%")),
                          fluidRow(
-                           plotlyOutput('plot_nitrogen_traces', height = '100%'),
-                           plotlyOutput('plot_nitrogen_effect', height = '100%')                           
+                           splitLayout(
+                             plotlyOutput('plot_nitrogen_traces', height = '100%'),
+                             plotlyOutput('plot_nitrogen_effect', height = '100%'),
+                             cellWidths = c('50%', '50%')
+                           )
                          )),
                 tabPanel("Summary", verbatimTextOutput("summary")))
   )
@@ -82,6 +106,7 @@ server <- function(input, output, session) {
   model <- reactive(create_model(input$variables))
   Z <- reactive(create_surface(model(), grid))
   nitrogen_traces <- reactive(create_nitrogen_traces(model()))
+  nitrogen_effect <- reactive(create_nitrogen_effect(model()))
   
   output$plot <- renderPlotly(
     plot1 <- subplot(
@@ -110,8 +135,18 @@ server <- function(input, output, session) {
       add_trace(y = ~trace3, type = 'scatter', mode = 'lines', name = 'P = 0.25') %>%
       add_trace(y = ~trace4, type = 'scatter', mode = 'lines', name = 'P = 0.30') %>%
       layout(
+        title = "Nitrogen-length association",
         xaxis = list(title = "Nitrogen"),
         yaxis = list(title = "Length")))
+  output$plot_nitrogen_effect <- renderPlotly(
+    plot1 <- plot_ly(nitrogen_effect(), x = ~phosphor, y = ~effect,
+                     type = 'scatter', mode = 'lines') %>%
+      layout(
+        title = "Effect of one unit of nitrogen",
+        xaxis = list(title = "Phosphor"),
+        yaxis = list(title = "Nitrogen effect")
+      )
+  )
 }
 
 shinyApp(ui, server)
