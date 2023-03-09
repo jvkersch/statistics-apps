@@ -73,16 +73,8 @@ server <- function(input, output, session) {
   
   output$plot <- renderPlotly(
     plot1 <- subplot(
-      plot_ly(x = nitrogen, y = phosphor, z = Z()) %>% add_surface(
-        contours = list(
-          z = list(
-            show = TRUE,
-            usecolormap = TRUE,
-            highlightcolor="#ff0000",
-            project=list(z=TRUE)
-          )
-        )
-      ),
+      plot_ly(x = nitrogen, y = phosphor, z = Z()) %>% 
+        add_surface(),
       plot_ly(x = needles$nitrogen, 
               y = needles$phosphor, 
               z = needles$length,
