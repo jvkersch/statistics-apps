@@ -34,6 +34,7 @@ compute_dfbetas <- function(x, y) {
 
 ui <- fluidPage(
   headerPanel('Regression outliers and leverage'),
+  p("Drag the red point around to see the effect on the regression line and the outlier diagnostics. The red bar in the outlier diagnostics refers to the red point. The blue bars refers to the remaining 10 fixed data points."),
   fluidRow(
     column(12, plotlyOutput("regression"))
   ),
