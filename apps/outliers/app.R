@@ -51,7 +51,7 @@ server <- function(input, output, session) {
   X <- sort(3*runif(n))
   Y <- X + 0.3*rnorm(n)
   
-  x_regr <- seq(0, 3.5, length.out = n)
+  x_regr <- seq(-1, 4.5, length.out = n)
   
   n_obs <- n + 1
   
@@ -100,8 +100,8 @@ server <- function(input, output, session) {
       add_text(textposition = "top right") %>%
       layout(shapes = circles, 
              showlegend = FALSE,
-             xaxis = list(range=c(0, 3.5)),
-             yaxis = list(range=c(-0.5, 3.5))) %>%
+             xaxis = list(range=c(-1, 4.5)),
+             yaxis = list(range=c(-1.5, 4.5))) %>%
       config(edits = list(shapePosition = TRUE))
   })
   
