@@ -82,10 +82,11 @@ jobs:
           options(install.packages.check.source = "no")
           if (!shinytest::dependenciesInstalled()) shinytest::installDependencies()
 
-      - name: Run tests
-        shell: Rscript {0}
-        run: |
-          shiny::runTests(".", assert = TRUE)
+      - name: Install app dependencies
+        run: Rscript install-requirements.R
+
+      - name: Run app tests
+        run: Rscript run-tests.R
 
       - name: Upload test results
         if: failure()
