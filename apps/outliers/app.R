@@ -34,6 +34,7 @@ compute_dfbetas <- function(x, y) {
 
 ui <- fluidPage(
   headerPanel('Regression outliers and leverage'),
+  p("Drag the red point around to see the effect on the regression line and the outlier diagnostics. The red bar in the outlier diagnostics refers to the red point. The blue bars refers to the remaining 10 fixed data points."),
   fluidRow(
     column(12, plotlyOutput("regression"))
   ),
@@ -50,9 +51,11 @@ server <- function(input, output, session) {
   X <- sort(3*runif(n))
   Y <- X + 0.3*rnorm(n)
   
+  x_regr <- seq(-1, 4.5, length.out = n)
+  
   n_obs <- n + 1
   
-  outlier <- reactiveValues(x = 2.75, y = 0.0)
+  outlier <- reactiveValues(x = 1.75, y = 2.25)
   
   # Simplified version of 
   # https://community.rstudio.com/t/update-scatter-in-plotly-by-dragging-shapes-shiny/44809/2
@@ -67,6 +70,12 @@ server <- function(input, output, session) {
   })
   
   output$regression <- renderPlotly({
+    # Regression model for data and outlier
+    x <- c(X, outlier$x)
+    y <- c(Y, outlier$y)
+    m <- lm(y ~ x)
+    y_regr <- predict(m, newdata=data.frame(x = x_regr))
+    
     circles <- map(
       list(outlier),
       ~{
@@ -86,12 +95,13 @@ server <- function(input, output, session) {
     )
     
     plot_ly(x = X, y = Y, text = 1:length(X)) %>%
+      add_trace(x = x_regr, y = y_regr, mode = "lines") %>%
       add_markers() %>%
       add_text(textposition = "top right") %>%
       layout(shapes = circles, 
              showlegend = FALSE,
-             xaxis = list(range=c(0, 3.5)),
-             yaxis = list(range=c(-0.5, 3.5))) %>%
+             xaxis = list(range=c(-1, 4.5)),
+             yaxis = list(range=c(-1.5, 4.5))) %>%
       config(edits = list(shapePosition = TRUE))
   })
   
@@ -110,10 +120,6 @@ server <- function(input, output, session) {
       labs(x = "", y = "") + 
       ylim(0, 1.0) +
       geom_hline(yintercept=2/length(x), linetype="dashed", color = "red")
-    
-    # m <- lm(y ~ x)
-    # plot(1, type="n", xlab="", ylab="", xlim=c(1, n+1), ylim=c(0, 1))
-    # segments(1:(n+1), 0, 1:(n+1), hatvalues(m)) 
   })
   
   output$cooksdistance = renderPlot({
