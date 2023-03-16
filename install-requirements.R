@@ -1,6 +1,7 @@
 pkgs <- c(
   "shiny",
   "shinydashboard",
+  "testthat",
   "formattable",
   "ggplot2",
   "plotly",
