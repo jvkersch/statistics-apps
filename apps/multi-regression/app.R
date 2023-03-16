@@ -23,18 +23,11 @@ get_default <- function(coefs, name, default = 0) {
 
 get_length <- function(model, nitrogen, phosphor) {
   cs <- coef(model)
-  Z <- 0*nitrogen + cs["(Intercept)"] 
-  if (!is.na(cs["nitrogen"])) {
-    Z <- Z + cs["nitrogen"]*nitrogen
-  }
-  if (!is.na(cs["phosphor"])) {
-    Z <- Z + cs["phosphor"]*phosphor
-  }
-  if (!is.na(cs["I(nitrogen * phosphor)"])) {
-    Z <- Z + cs["I(nitrogen * phosphor)"]*nitrogen*phosphor
-  }
-  return(Z)
-  
+  0*nitrogen + 
+    cs["(Intercept)"] + 
+    get_default(cs, "nitrogen")*nitrogen +
+    get_default(cs, "phosphor")*phosphor +
+    get_default(cs, "I(nitrogen * phosphor)")*nitrogen*phosphor
 }
 
 create_surface <- function(model, grid) {
