@@ -23,8 +23,8 @@ get_default <- function(coefs, name, default = 0) {
 
 get_length <- function(model, nitrogen, phosphor) {
   cs <- coef(model)
-  0*nitrogen + 
-    cs["(Intercept)"] + 
+  0*nitrogen +
+    cs["(Intercept)"] +
     get_default(cs, "nitrogen")*nitrogen +
     get_default(cs, "phosphor")*phosphor +
     get_default(cs, "I(nitrogen * phosphor)")*nitrogen*phosphor
@@ -47,7 +47,7 @@ create_nitrogen_traces <- function(model) {
 
 create_nitrogen_effect <- function(model) {
   phosphor <- seq(0.15, 0.35, length.out = 10)
-  
+
   coefs <- coef(model)
   beta_N <- get_default(coefs, "nitrogen")
   beta_NP <- get_default(coefs, "I(nitrogen * phosphor)")
@@ -68,14 +68,14 @@ ui <- fluidPage(
       label=h3("Model terms"),
       choices=list(
         "Nitrogen"="nitrogen",
-        "Phosphor"="phosphor", 
+        "Phosphor"="phosphor",
         "Nitrogen × Phosphor"="I(nitrogen*phosphor)"),
       selected=c("nitrogen", "phosphor")
     ),
   ),
   mainPanel(
     tabsetPanel(type = "tabs",
-                tabPanel("Plot", 
+                tabPanel("Plot",
                          fluidRow(
                            plotlyOutput('plot', height = "100%")),
                          fluidRow(
@@ -90,25 +90,25 @@ ui <- fluidPage(
 )
 
 server <- function(input, output, session) {
-  
+
   # Plotting grid
   nitrogen <- seq(1, 3, length.out = 50)
   phosphor <- seq(0.15, 0.40, length.out = 50)
   grid <- create_plotgrid(nitrogen, phosphor)
-  
+
   model <- reactive(create_model(input$variables))
   Z <- reactive(create_surface(model(), grid))
   nitrogen_traces <- reactive(create_nitrogen_traces(model()))
   nitrogen_effect <- reactive(create_nitrogen_effect(model()))
-  
+
   output$plot <- renderPlotly(
     plot1 <- subplot(
-      plot_ly(x = nitrogen, y = phosphor, z = Z()) %>% 
+      plot_ly(x = nitrogen, y = phosphor, z = Z()) %>%
         add_surface(),
-      plot_ly(x = needles$nitrogen, 
-              y = needles$phosphor, 
+      plot_ly(x = needles$nitrogen,
+              y = needles$phosphor,
               z = needles$length,
-              marker = list(size = 5)) %>% 
+              marker = list(size = 5)) %>%
         add_markers()
     ) %>% layout(
       scene = list(
