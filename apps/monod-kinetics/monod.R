@@ -28,9 +28,10 @@ single_monod <- function(times, alpha, beta, s0) {
 
 ui <- fluidPage(sidebarLayout(
   sidebarPanel(
+    h3("Monod 1"),
     sliderInput(
       "alpha1",
-      "alpha1:",
+      "alpha:",
       min = 0,
       max = 2,
       value = 0.344,
@@ -38,7 +39,7 @@ ui <- fluidPage(sidebarLayout(
     ),
     sliderInput(
       "beta1",
-      "beta1:",
+      "beta:",
       min = 0,
       max = 10,
       value = 1.67,
@@ -46,15 +47,16 @@ ui <- fluidPage(sidebarLayout(
     ),
     sliderInput(
       "s1",
-      "s1:",
+      "s:",
       min = 0,
       max = 6,
       value = 4.22,
       step = 0.05
     ),
+    h3("Monod 2"),
     sliderInput(
       "alpha2",
-      "alpha2:",
+      "alpha:",
       min = 0,
       max = 2,
       value = 0.47,
@@ -62,7 +64,7 @@ ui <- fluidPage(sidebarLayout(
     ),
     sliderInput(
       "beta2",
-      "beta2:",
+      "beta:",
       min = 0,
       max = 3,
       value = 0.13,
@@ -70,7 +72,7 @@ ui <- fluidPage(sidebarLayout(
     ),
     sliderInput(
       "s2",
-      "s2:",
+      "s:",
       min = 0,
       max = 6,
       value = 4.09,
