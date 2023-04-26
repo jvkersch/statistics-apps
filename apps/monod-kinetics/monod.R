@@ -1,28 +1,27 @@
 library(shiny)
 library(deSolve)
 
-our.data <- read.csv("vanrolleghem_our.csv")
-#our.data <- matrix(c(5, 15, 0.85, 0.3), ncol = 2)
+our_data <- read.csv("vanrolleghem_our.csv")
 times <- seq(0, 45, by = 0.1)
 
-monod.rhs <- function(t, state, parameters) {
+monod_rhs <- function(t, state, parameters) {
   with(as.list(c(state, parameters)), {
     list(c(-alpha*s/(beta + s)))
   })
 }
 
-monod.solve <- function(times, s0, alpha, beta) {
+monod_solve <- function(times, s0, alpha, beta) {
   state <- c(s=s0)
   parameters <- c(alpha=alpha, beta=beta)
-  sol <- ode(y = state, times = times, parms = parameters, func = monod.rhs)
-  ds.dt <- sapply(sol[,"s"], function(s) {
-    monod.rhs(0.0, c(s=s), parameters = parameters)[[1]]
+  sol <- ode(y = state, times = times, parms = parameters, func = monod_rhs)
+  ds_dt <- sapply(sol[,"s"], function(s) {
+    monod_rhs(0.0, c(s=s), parameters = parameters)[[1]]
   })
-  return(list(s=sol[,"s"], ds.dt=ds.dt))
+  return(list(s=sol[,"s"], ds_dt=ds_dt))
 }
 
-our.single.monod <- function(times, alpha, beta, s0) {
-  sol <- monod.solve(times, s0, alpha, beta)
+single_monod <- function(times, alpha, beta, s0) {
+  sol <- monod_solve(times, s0, alpha, beta)
   alpha * sol$s / (beta + sol$s)
 }
 
@@ -33,7 +32,7 @@ ui <- fluidPage(sidebarLayout(
       "alpha1",
       "alpha1:",
       min = 0,
-      max = 10,
+      max = 2,
       value = 0.344,
       step = 0.05
     ),
@@ -57,7 +56,7 @@ ui <- fluidPage(sidebarLayout(
       "alpha2",
       "alpha2:",
       min = 0,
-      max = 3,
+      max = 2,
       value = 0.47,
       step = 0.05
     ),
@@ -83,18 +82,23 @@ ui <- fluidPage(sidebarLayout(
 
 server <- function(input, output) {
   output$distPlot <- renderPlot({
+    par(cex = 1.5)
     plot(
-      our.data[, 1],
-      our.data[, 2],
+      our_data[, 1],
+      our_data[, 2],
       ylim = c(0, 1),
       pch = 20,
-      cex = 0.5
+      cex = 0.5,
+      xlab = "Time",
+      ylab = "OUR"
     )
-    m1 <- our.single.monod(times, input$alpha1, input$beta1, input$s1)
-    m2 <- our.single.monod(times, input$alpha2, input$beta2, input$s2)
-    lines(times, m1, lty = 2)
-    lines(times, m2, lty = 3)
-    lines(times, m1+m2)
+    m1 <- single_monod(times, input$alpha1, input$beta1, input$s1)
+    m2 <- single_monod(times, input$alpha2, input$beta2, input$s2)
+    lines(times, m1 + m2, lty = 1, lwd = 2)
+    lines(times, m1, lty = 2, lwd = 2)
+    lines(times, m2, lty = 3, lwd = 2)
+    legend("topright", legend = c("Combined", "Monod 1", "Monod 2"),
+           lty = 1:3, lwd = 2)
   })
 
 }
