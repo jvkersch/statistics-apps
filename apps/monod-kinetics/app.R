@@ -102,7 +102,7 @@ server <- function(input, output) {
       pch = 20,
       cex = 0.5,
       xlab = "Time",
-      ylab = "OUR"
+      ylab = "S(t)"
     )
     m1 <- single_monod(times, input$alpha1, input$beta1, input$s1)
     m2 <- single_monod(times, input$alpha2, input$beta2, input$s2)
