@@ -47,7 +47,7 @@ ui <- fluidPage(sidebarLayout(
     ),
     sliderInput(
       "s1",
-      "s:",
+      "s0:",
       min = 0,
       max = 6,
       value = 4.22,
@@ -72,14 +72,24 @@ ui <- fluidPage(sidebarLayout(
     ),
     sliderInput(
       "s2",
-      "s:",
+      "s0:",
       min = 0,
       max = 6,
       value = 4.09,
       step = 0.05
     )
   ),
-  mainPanel(plotOutput("distPlot"))
+  mainPanel(
+    plotOutput("distPlot"),
+    withMathJax(),
+    p(
+      'Fit the double Monod model to the data shown in the plot. The sliders control
+      the parameters of each single Monod model, and the double Monod model is the
+      sum of the two single Monod models. The expression for a single Monod model is
+      described by the following ODE: $$\\frac{d S}{d t} = - \\frac{\\alpha S}{\\beta + S}.$$
+      The parameters of this model are \\(\\alpha\\), \\(\\beta\\), and the
+      inital condition \\(S_0\\).')
+  )
 ))
 
 server <- function(input, output) {
