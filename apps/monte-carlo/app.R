@@ -62,6 +62,7 @@ server <- function(input, output) {
       xlab("Points Added") +
       ylab("Fraction Inside Circle") +
       ylim(0, 1) +
+      geom_hline(yintercept = pi/4, linetype = "dashed") +
       theme(text = element_text(size = 20))
   })
 
