@@ -8,7 +8,8 @@ pkgs <- c(
   "purrr",
   "MASS",
   "rmutil",
-  "scales"
+  "scales",
+  "deSolve"
 )
 
 install.packages(pkgs)
