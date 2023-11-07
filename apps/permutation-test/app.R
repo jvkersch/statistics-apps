@@ -32,7 +32,7 @@ make.data <- function(pop1, pop2) {
   total.pop <- c(pop1, pop2)
   s <- sort(total.pop, index.return = TRUE)
   list(data=c(pop1, pop2)[s$ix],
-       mask=c(rep(TRUE, length(pop1)), 
+       mask=c(rep(TRUE, length(pop1)),
               rep(FALSE, length(pop2)))[s$ix],
        n1=length(pop1),
        n2=length(pop2))
@@ -88,31 +88,31 @@ server <- function(input, output) {
   v <- reactiveValues()
   observeEvent(input$distribution, {
 
-    
+
     bundle <- switch(
       input$distribution,
       "separated"=generate.data.separated,
       "distinct"=generate.data.distinct,
       "interleaved"=generate.data.interleaved
     )()
-    
-    # Initalize reactive context    
-    
+
+    # Initalize reactive context
+
     # TODO: simply make bundle into a single reactive
     v$total.pop <- bundle$data
     v$groups <- bundle$mask
     v$n1 <- bundle$n1
     v$n2 <- bundle$n2
     v$n <- bundle$n1 + bundle$n2
-    v$W <- compute.w.statistic(bundle$mask)    
-    
+    v$W <- compute.w.statistic(bundle$mask)
+
     # TODO split off state
     v$ranks = c()
     v$selected = seq(1, v$n)
     v$nsamples = 0
     v$pvalue = 0
   })
-    
+
   observeEvent(input$step1, {
     s <- run.w(v$n1, v$n)
     v$ranks <- c(v$ranks, sum(s))
@@ -120,7 +120,7 @@ server <- function(input, output) {
     v$nsamples <- length(v$ranks)
     v$pvalue <- sum(v$ranks <= v$W) / max(1., length(v$ranks))
   })
-  
+
   observeEvent(input$step100, {
     ss <- replicate(100, run.w(v$n1, v$n))
     v$ranks <- c(v$ranks, colSums(ss))
@@ -128,15 +128,15 @@ server <- function(input, output) {
     v$nsamples <- length(v$ranks)
     v$pvalue <- sum(v$ranks <= v$W) / max(1., length(v$ranks))
   })
-  
+
   output$nsamples <- renderText({
     paste0("Number of samples: ", v$nsamples)
   })
-  
+
   output$pvalue <- renderText({
-    paste0("Proportion smaller than W: ", percent(v$pvalue, accuracy = 0.01))
+    paste0("Proportion ≤ W: ", percent(v$pvalue, accuracy = 0.01))
   })
-  
+
   output$plot <- renderPlot({
     layout(matrix(
       c(1, 2, 2),
@@ -167,15 +167,15 @@ server <- function(input, output) {
       col = apply.alpha(rep("black", length(v$total.pop)), v$selected),
       cex = 2
     )
-    
+
     if (length(v$ranks) > 0) {
       n <- v$n1 + v$n2
       n1 <- v$n1
       n2 <- v$n2
-      
+
       xlim.min <- n1 * (n1 + 1) / 2 - 1
       xlim.max <- n * (n + 1) / 2 - n2 * (n2 + 1) / 2+ 1
-      
+
       hist(
         v$ranks,
         main = "",
