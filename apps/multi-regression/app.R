@@ -72,6 +72,21 @@ ui <- fluidPage(
         "Nitrogen × Phosphor"="I(nitrogen*phosphor)"),
       selected=c("nitrogen", "phosphor")
     ),
+    h3("Instructions"),
+    p(paste0(
+      "Build a linear model for the dataset of Japanese larches by adding ",
+      "or removing predictors and interactions. Drag the regression surface ",
+      "to view it from different angles.")),
+    p(paste0(
+      "The plots below show the effect of one extra unit of nitrogen ",
+      "on the length of the tree (left), and the nitrogen effect as a ",
+      "function of phosporus.")),
+    p(HTML(
+      paste0(
+        "<ol><li>What is the relation between both effect plots?</li>",
+        "<li>When is the effect a straight line? When is it a curved line?</li>",
+        "</ol>")
+    ))
   ),
   mainPanel(
     tabsetPanel(type = "tabs",
