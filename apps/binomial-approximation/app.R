@@ -37,7 +37,12 @@ ui <- fluidPage(
         paste0(
           "The normal distribution approximates the Bernoulli distribution ",
           "well as long as \\(np(1-p) \\gg 5\\)."
-        ))
+        )),
+      helpText(
+        paste0(
+          "Use the sliders to adjust the number of trials \\(n\\) and the ",
+          "probability of success \\(p\\). When does the approximation ",
+          "break down?"))
     ),
 
     # Show a plot of the generated distribution
