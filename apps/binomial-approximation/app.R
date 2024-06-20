@@ -32,7 +32,7 @@ ui <- fluidPage(
     mainPanel(
       plotOutput("distPlot"),
       textOutput("error"),
-      textOutput("condition")
+      uiOutput("condition")
     )
   )
 )
@@ -105,10 +105,14 @@ server <- function(input, output) {
     )
   })
 
-  output$condition <- renderText({
+  output$condition <- renderUI({
     p <- input$p
     n <- input$n
-    paste0("Condition for approximation: ", round(n * p * (1 - p), 1))
+    threshold <- round(n * p * (1 - p), 1)
+    ineq <- if(threshold > 5) ">" else "<"
+    valid <- if(threshold > 5) "Yes" else "No"
+    HTML(paste0("Approximation reliable? <strong>", valid, "</strong> (",
+                threshold, " ", ineq, " 5)"))
   })
 
 }
