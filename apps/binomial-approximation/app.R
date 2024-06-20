@@ -13,19 +13,31 @@ ui <- fluidPage(
     sidebarPanel(
       sliderInput(
         "n",
-        "Number of trials:",
+        "Number of trials (n):",
         min = 1,
         max = 50,
         value = 30
       ),
       sliderInput(
         "p",
-        "Probability of success:",
+        "Probability of success (p):",
         min = 0.01,
         max = 0.99,
         value = 0.5
       ),
-      checkboxInput("truncate", "Truncate x-axis", TRUE)
+      checkboxInput("truncate", "Truncate x-axis", TRUE),
+      h3("Instructions"),
+      withMathJax(),
+      helpText(
+        paste0(
+          "The vertical bars show the Bernoulli distribution \\(B(n, p)\\), ",
+          "while the red curve represents the normal distribution with mean ",
+          "\\(\\mu = np\\) and variance \\(\\sigma^2 = np(1-p)\\).")),
+      helpText(
+        paste0(
+          "The normal distribution approximates the Bernoulli distribution ",
+          "well as long as \\(np(1-p) \\gg 5\\)."
+        ))
     ),
 
     # Show a plot of the generated distribution
