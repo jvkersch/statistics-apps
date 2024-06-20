@@ -134,7 +134,7 @@ server <- function(input, output) {
   })
 
   output$pvalue <- renderText({
-    paste0("Proportion ≤ W: ", percent(v$pvalue, accuracy = 0.01))
+    paste0("Proportion ≤ W: ", percent(v$pvalue))
   })
 
   output$plot <- renderPlot({
