@@ -18,7 +18,24 @@ ui <- fluidPage(# Application title
         min = 1,
         max = 200,
         value = 30
-      )
+      ),
+      h3("Instructions"),
+      p(HTML(
+        paste0(
+          "The central limit theorem states that the distribution of the ",
+          "sample mean is approximately normal, even if the population ",
+          "distribution is not normal. Some technical conditions need to be ",
+          "met for the CLT to hold (see ",
+          "<a href='https://en.wikipedia.org/wiki/Central_limit_theorem'>Wikipedia</a>)."
+        ))),
+      p(HTML(
+        paste0(
+          "Use the dropdown above to select a population distribution, and ",
+          "the slider to increase or decrease the number of data points in ",
+          "the sample. <ol><li>How many data points does it take before the ",
+          "distribution of the sample mean becomes approximately normal?</li>",
+          "<li>What goes wrong for the Cauchy distribution?</li></ol>"
+        )))
     ),
 
     mainPanel(plotOutput("distPlot"))
