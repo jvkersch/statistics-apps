@@ -15,9 +15,9 @@ ui <- fluidPage(titlePanel("Wilcoxon rank-sum test"),
                         "Distinct"="distinct",
                         "Interleaved"="interleaved")
                     ),
-                    actionButton("step1", "Add 1 sample"),
+                    actionButton("step1", "Add 1 permutation"),
                     br(),
-                    actionButton("step100", "Add 100 samples"),
+                    actionButton("step100", "Add 100 permutations"),
                     br(),
                     textOutput("nsamples"),
                     br(),
@@ -178,13 +178,14 @@ server <- function(input, output) {
 
       hist(
         v$ranks,
-        main = "",
+        main = "Distribution of the W-statistic",
         xlab = "",
         ylab = "",
         yaxt = "n",
         freq = FALSE,
         xlim = c(xlim.min, xlim.max),
-        cex.axis = 2
+        cex.axis = 2,
+        cex.main = 2
       )
       rug(jitter(v$ranks),
           lwd = 1,
