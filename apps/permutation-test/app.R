@@ -19,8 +19,8 @@ ui <- fluidPage(titlePanel("Wilcoxon rank-sum test"),
                     br(),
                     actionButton("step100", "Add 100 permutations"),
                     br(),
+                    textOutput("wdata"),
                     textOutput("nsamples"),
-                    br(),
                     textOutput("pvalue")
                   ),
                   mainPanel(plotOutput("plot"))
@@ -127,6 +127,10 @@ server <- function(input, output) {
     v$selected <- ss[,ncol(ss)]
     v$nsamples <- length(v$ranks)
     v$pvalue <- sum(v$ranks <= v$W) / max(1., length(v$ranks))
+  })
+
+  output$wdata <- renderText({
+    paste0("W-statistic of data: ", v$W)
   })
 
   output$nsamples <- renderText({
