@@ -197,8 +197,8 @@ server <- function(input, output) {
       rug(v$ranks[[length(v$ranks)]],
           lwd = 10,
           ticksize = 0.05,
-          col = "red")
-      abline(v=v$W, col="blue", lwd=2)
+          col = "black")
+      abline(v=v$W, col="red", lwd=2)
     }
   })
 }
