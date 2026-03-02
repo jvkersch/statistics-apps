@@ -15,5 +15,7 @@ fi
 
 sed "s/PORT/$PORT/g; s/USER/$USER/g" < /srv/conf/shiny-server-template.conf > /etc/shiny-server/shiny-server.conf
 
+export SHINY_LOG_STDERR=1
+
 # Run shiny
 exec /usr/bin/shiny-server
