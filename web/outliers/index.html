@@ -1,0 +1,174 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Outliers and Leverage</title>
+  <link rel="stylesheet" href="../style.css">
+  <script src="https://cdn.jsdelivr.net/npm/plotly.js-dist-min@2.35.2/plotly.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/jstat@1.9.6/dist/jstat.min.js"></script>
+  <script src="../common.js"></script>
+</head>
+<body>
+  <main class="app">
+    <a class="back" href="../">← All apps</a>
+    <h1>Regression outliers and leverage</h1>
+    <p class="lead">
+      Drag the orange point around and watch how much it pulls on the regression
+      line, and how the outlier diagnostics respond.
+    </p>
+
+    <div class="layout">
+      <aside class="card controls">
+        <div class="buttons">
+          <button id="reset">Reset the point</button>
+        </div>
+        <div class="notes">
+          <p><strong>Leverage</strong> measures how unusual a point's x-value is.
+            Points far from the mean of x can pull the line strongly.</p>
+          <p><strong>Cook's distance</strong> measures how much the fitted line changes
+            when the point is left out. It combines leverage and the size of the residual.</p>
+          <p><strong>DFBETAS</strong> measures how much the slope changes, in standard
+            errors, when the point is left out.</p>
+          <p>Dotted lines mark common rule-of-thumb thresholds.</p>
+          <p class="try">Try this</p>
+          <ol>
+            <li>Find a position with high leverage but a small Cook's distance.</li>
+            <li>Where does the point have the most influence on the slope?</li>
+          </ol>
+        </div>
+      </aside>
+
+      <div class="content">
+        <section class="card">
+          <h2>Data and fitted line</h2>
+          <p class="card-sub" id="fit"></p>
+          <div id="regression" class="plot tall"></div>
+        </section>
+        <div class="row">
+          <section class="card">
+            <h2>Leverage</h2>
+            <p class="card-sub">hat values</p>
+            <div id="leverage" class="plot short"></div>
+          </section>
+          <section class="card">
+            <h2>Cook's distance</h2>
+            <p class="card-sub">influence on the whole fit</p>
+            <div id="cooksdistance" class="plot short"></div>
+          </section>
+          <section class="card">
+            <h2>DFBETAS</h2>
+            <p class="card-sub">influence on the slope</p>
+            <div id="dfbetas" class="plot short"></div>
+          </section>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <script>
+    // Fixed data points, generated in R with set.seed(12345); see apps/outliers/app.R
+    const X = [0.4991, 0.9753, 1.3694, 1.5277, 2.1627, 2.1831, 2.2829, 2.6273, 2.6584, 2.9692];
+    const Y = [-0.0463, 1.1643, 1.2866, 1.4424, 1.8869, 2.1482, 2.8281, 2.7385, 2.8144, 2.7441];
+    const N_OBS = X.length + 1;
+    const X_REGR = [-1, 4.5];
+    const LABELS = seq(1, N_OBS, N_OBS).map(String);
+    const START = { x: 1.75, y: 2.25 };
+
+    const outlier = { ...START };
+
+    // Simple linear regression and its diagnostics: leverage (hat values),
+    // Cook's distance and DFBETAS for the slope.
+    function diagnostics(x, y) {
+      const n = x.length;
+      const xbar = mean(x);
+      const ybar = mean(y);
+      const sxx = sum(x.map(v => (v - xbar) ** 2));
+      const slope = sum(x.map((v, i) => (v - xbar) * (y[i] - ybar))) / sxx;
+      const intercept = ybar - slope * xbar;
+
+      const e = x.map((v, i) => y[i] - intercept - slope * v);
+      const h = x.map(v => 1 / n + (v - xbar) ** 2 / sxx);
+      const s2 = sum(e.map(r => r * r)) / (n - 2);
+      const cook = e.map((r, i) => r * r * h[i] / (2 * s2 * (1 - h[i]) ** 2));
+      const dfbetas = x.map((v, i) => {
+        const s2i = ((n - 2) * s2 - e[i] ** 2 / (1 - h[i])) / (n - 3);
+        return (v - xbar) * e[i] / (1 - h[i]) / Math.sqrt(s2i * sxx);
+      });
+      return { intercept, slope, leverage: h, cook, dfbetas };
+    }
+
+    function barPlot(id, values, range, thresholds) {
+      const c = colors();
+      plot(id, [{
+        x: LABELS, y: values, type: "bar",
+        marker: { color: values.map((_, i) => (i === N_OBS - 1 ? c.series2 : c.series1)) },
+        hovertemplate: "point %{x}: %{y:.3f}<extra></extra>",
+      }], {
+        bargap: 0.35,
+        xaxis: { type: "category", showgrid: false, tickfont: { size: 11 } },
+        yaxis: { range: range },
+        shapes: thresholds.map(y => ({ type: "line", xref: "paper", x0: 0, x1: 1, y0: y, y1: y,
+                                       line: { color: c.ink2, width: 1, dash: "dot" } })),
+      });
+    }
+
+    function outlierShape() {
+      const c = colors();
+      return {
+        type: "circle", xanchor: outlier.x, yanchor: outlier.y,
+        x0: -8, y0: -8, x1: 8, y1: 8, xsizemode: "pixel", ysizemode: "pixel",
+        fillcolor: c.series2, line: { color: c.surface, width: 2 }, layer: "below",
+      };
+    }
+
+    function drawRegression(d) {
+      const c = colors();
+      plot("regression", [
+        { x: X_REGR, y: X_REGR.map(v => d.intercept + d.slope * v), mode: "lines",
+          line: { color: c.ink2, width: 2 }, hoverinfo: "skip" },
+        { x: X, y: Y, mode: "markers+text", text: LABELS.slice(0, X.length),
+          textposition: "top right", textfont: { color: c.muted, size: 11 },
+          marker: { color: c.series1, size: 10, line: { color: c.surface, width: 2 } },
+          hovertemplate: "point %{text}: (%{x:.2f}, %{y:.2f})<extra></extra>" },
+      ], {
+        xaxis: { range: [-1, 4.5], title: "x" },
+        yaxis: { range: [-1.5, 4.5], title: "y" },
+        shapes: [outlierShape()],
+      }, { edits: { shapePosition: true } });
+    }
+
+    function update() {
+      const x = [...X, outlier.x];
+      const y = [...Y, outlier.y];
+      const d = diagnostics(x, y);
+
+      document.getElementById("fit").textContent =
+        "fitted line: y = " + d.intercept.toFixed(2) + (d.slope < 0 ? " − " : " + ") +
+        Math.abs(d.slope).toFixed(2) + " x";
+      drawRegression(d);
+
+      barPlot("leverage", d.leverage, [0, 1], [2 / N_OBS]);
+      barPlot("cooksdistance", d.cook,
+              [0, jStat.centralF.inv(0.90, 2, N_OBS - 2)],
+              [jStat.centralF.inv(0.50, 2, N_OBS - 2)]);
+      const t = 1 / Math.sqrt(N_OBS);
+      barPlot("dfbetas", d.dfbetas, [-3 * t, 3 * t], [t, -t]);
+    }
+
+    update();
+    document.getElementById("regression").on("plotly_relayout", event => {
+      if ("shapes[0].xanchor" in event) {
+        outlier.x = event["shapes[0].xanchor"];
+        outlier.y = event["shapes[0].yanchor"];
+        update();
+      }
+    });
+    document.getElementById("reset").addEventListener("click", () => {
+      Object.assign(outlier, START);
+      update();
+    });
+    onThemeChange(update);
+  </script>
+</body>
+</html>

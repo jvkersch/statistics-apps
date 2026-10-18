@@ -1,0 +1,95 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Growth Curves</title>
+  <link rel="stylesheet" href="../style.css">
+  <script src="https://cdn.jsdelivr.net/npm/plotly.js-dist-min@2.35.2/plotly.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/mathjax@3.2.2/es5/tex-mml-chtml.js" async></script>
+  <script src="../common.js"></script>
+</head>
+<body>
+  <main class="app">
+    <a class="back" href="../">← All apps</a>
+    <h1>Growth curves</h1>
+    <p class="lead">
+      Two S-shaped models for growth that levels off. Both approach the asymptote
+      \(A\), but the Gompertz curve is not symmetric around its inflection point.
+    </p>
+
+    <div class="layout">
+      <aside class="card controls">
+        <div class="group">
+          <p class="group-title"><span class="swatch" style="background: var(--series-1)"></span>Gompertz</p>
+          <p class="formula">\(y = A\, e^{-B e^{-Cx}}\)</p>
+          <div class="field">
+            <div class="field-head"><label for="G_A">\(A\): asymptote</label><output id="G_A-value"></output></div>
+            <input type="range" id="G_A" min="0.1" max="5" step="0.1" value="3">
+          </div>
+          <div class="field">
+            <div class="field-head"><label for="G_B">\(B\): displacement</label><output id="G_B-value"></output></div>
+            <input type="range" id="G_B" min="0.1" max="10" step="0.1" value="1">
+          </div>
+          <div class="field">
+            <div class="field-head"><label for="G_C">\(C\): growth rate</label><output id="G_C-value"></output></div>
+            <input type="range" id="G_C" min="0.1" max="8" step="0.1" value="1">
+          </div>
+        </div>
+        <div class="group">
+          <p class="group-title"><span class="swatch" style="background: var(--series-2)"></span>Logistic</p>
+          <p class="formula">\(y = \dfrac{A}{1 + e^{-k(x - x_0)}}\)</p>
+          <div class="field">
+            <div class="field-head"><label for="L_A">\(A\): asymptote</label><output id="L_A-value"></output></div>
+            <input type="range" id="L_A" min="0.1" max="5" step="0.1" value="3.5">
+          </div>
+          <div class="field">
+            <div class="field-head"><label for="L_k">\(k\): growth rate</label><output id="L_k-value"></output></div>
+            <input type="range" id="L_k" min="0.1" max="8" step="0.1" value="1">
+          </div>
+          <div class="field">
+            <div class="field-head"><label for="L_x0">\(x_0\): midpoint</label><output id="L_x0-value"></output></div>
+            <input type="range" id="L_x0" min="-4" max="4" step="0.1" value="0">
+          </div>
+        </div>
+      </aside>
+
+      <div class="content">
+        <section class="card">
+          <div id="plot" class="plot tall"></div>
+        </section>
+      </div>
+    </div>
+  </main>
+
+  <script>
+    function gompertz(x, A, B, C) {
+      return A * Math.exp(-B * Math.exp(-C * x));
+    }
+
+    function logistic(x, A, k, x0) {
+      return A / (1 + Math.exp(-k * (x - x0)));
+    }
+
+    function update() {
+      const c = colors();
+      const x = seq(-5, 5, 200);
+      plot("plot", [
+        { x: x, y: x.map(t => gompertz(t, value("G_A"), value("G_B"), value("G_C"))),
+          mode: "lines", name: "Gompertz", line: { color: c.series1, width: 2.5 } },
+        { x: x, y: x.map(t => logistic(t, value("L_A"), value("L_k"), value("L_x0"))),
+          mode: "lines", name: "Logistic", line: { color: c.series2, width: 2.5 } },
+      ], {
+        showlegend: true,
+        hovermode: "x unified",
+        xaxis: { title: "x" },
+        yaxis: { title: "y", range: [0, 5.2] },
+      });
+    }
+
+    ["G_A", "G_B", "G_C", "L_A", "L_k", "L_x0"].forEach(id => bindSlider(id, update));
+    onThemeChange(update);
+    update();
+  </script>
+</body>
+</html>

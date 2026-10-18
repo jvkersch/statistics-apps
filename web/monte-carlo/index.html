@@ -1,0 +1,137 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Monte Carlo</title>
+  <link rel="stylesheet" href="../style.css">
+  <script src="https://cdn.jsdelivr.net/npm/plotly.js-dist-min@2.35.2/plotly.min.js"></script>
+  <script src="../common.js"></script>
+</head>
+<body>
+  <main class="app">
+    <a class="back" href="../">← All apps</a>
+    <h1>Monte Carlo</h1>
+    <p class="lead">
+      Drop random points in the square [−1, 1] × [−1, 1] and count how many land
+      inside the unit circle. The fraction inside estimates a number you know well.
+    </p>
+
+    <div class="layout">
+      <aside class="card controls">
+        <div class="buttons">
+          <button class="primary" id="add_one">Add 1 point</button>
+          <button class="primary" id="add_hundred">Add 100 points</button>
+          <button id="reset">Reset</button>
+        </div>
+
+        <div class="notes">
+          <p class="try">Try this</p>
+          <ol>
+            <li>As you add points, the fraction inside settles on a number slightly
+              above 0.75. What is that number?</li>
+            <li>How many points do you need before the second decimal stops changing?</li>
+          </ol>
+        </div>
+      </aside>
+
+      <div class="content">
+        <section class="card tiles">
+          <div class="tile">
+            <div class="label">Points</div>
+            <div class="value" id="total"></div>
+          </div>
+          <div class="tile">
+            <div class="label"><span class="swatch dot" style="background: var(--series-1)"></span>Inside the circle</div>
+            <div class="value" id="inside"></div>
+          </div>
+          <div class="tile">
+            <div class="label">Fraction inside</div>
+            <div class="value" id="fraction"></div>
+          </div>
+        </section>
+        <div class="row">
+          <section class="card">
+            <h2>Random points</h2>
+            <p class="card-sub">
+              <span class="swatch dot" style="background: var(--series-1)"></span>inside
+              <span class="swatch dot" style="background: var(--series-2); margin-left: 12px"></span>outside
+            </p>
+            <div id="circle_plot" class="plot"></div>
+          </section>
+          <section class="card">
+            <h2>Fraction inside the circle</h2>
+            <p class="card-sub">dotted line: the value it converges to</p>
+            <div id="fraction_plot" class="plot"></div>
+          </section>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <script>
+    let xs, ys, inside, fractions, nInside;
+
+    function reset() {
+      xs = [];
+      ys = [];
+      inside = [];
+      fractions = [];
+      nInside = 0;
+    }
+
+    function add(count) {
+      for (let i = 0; i < count; i++) {
+        const x = 2 * Math.random() - 1;
+        const y = 2 * Math.random() - 1;
+        const isInside = x * x + y * y < 1;
+        if (isInside) nInside++;
+        xs.push(x);
+        ys.push(y);
+        inside.push(isInside);
+        fractions.push(nInside / xs.length);
+      }
+    }
+
+    function update() {
+      const c = colors();
+      const fraction = xs.length ? nInside / xs.length : null;
+      document.getElementById("total").textContent = xs.length.toLocaleString();
+      document.getElementById("inside").textContent = nInside.toLocaleString();
+      document.getElementById("fraction").textContent = fraction === null ? "–" : fraction.toFixed(4);
+
+      const angles = seq(0, 2 * Math.PI, 200);
+      plot("circle_plot", [
+        { x: angles.map(Math.cos), y: angles.map(Math.sin), mode: "lines",
+          line: { color: c.ink2, width: 1.5 }, hoverinfo: "skip" },
+        { x: xs, y: ys, mode: "markers", type: "scattergl",
+          marker: { size: 6, color: inside.map(v => (v ? c.series1 : c.series2)) },
+          hovertemplate: "(%{x:.2f}, %{y:.2f})<extra></extra>" },
+      ], {
+        xaxis: { range: [-1.05, 1.05], constrain: "domain", showgrid: false, dtick: 0.5 },
+        yaxis: { range: [-1.05, 1.05], scaleanchor: "x", showgrid: false, dtick: 0.5 },
+        shapes: [{ type: "rect", x0: -1, x1: 1, y0: -1, y1: 1, layer: "below",
+                   line: { color: c.grid, width: 1 } }],
+      });
+
+      plot("fraction_plot", [
+        { x: fractions.map((_, i) => i + 1), y: fractions, mode: "lines",
+          line: { color: c.series1, width: 2 },
+          hovertemplate: "%{x} points<br>fraction %{y:.4f}<extra></extra>" },
+      ], {
+        xaxis: { title: "Points added", rangemode: "tozero" },
+        yaxis: { title: "Fraction inside", range: [0, 1] },
+        shapes: [{ type: "line", xref: "paper", x0: 0, x1: 1, y0: Math.PI / 4, y1: Math.PI / 4,
+                   line: { color: c.ink2, width: 1, dash: "dot" } }],
+      });
+    }
+
+    document.getElementById("add_one").addEventListener("click", () => { add(1); update(); });
+    document.getElementById("add_hundred").addEventListener("click", () => { add(100); update(); });
+    document.getElementById("reset").addEventListener("click", () => { reset(); update(); });
+    onThemeChange(update);
+    reset();
+    update();
+  </script>
+</body>
+</html>

@@ -1,0 +1,201 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Wilcoxon Rank-Sum Test</title>
+  <link rel="stylesheet" href="../style.css">
+  <script src="https://cdn.jsdelivr.net/npm/plotly.js-dist-min@2.35.2/plotly.min.js"></script>
+  <script src="../common.js"></script>
+</head>
+<body>
+  <main class="app">
+    <a class="back" href="../">← All apps</a>
+    <h1>Wilcoxon rank-sum test</h1>
+    <p class="lead">
+      Rank all observations together and add up the ranks of group A: that sum is
+      the statistic W. If the groups do not differ, the group labels are just a
+      random shuffle. Shuffle them yourself to build up the distribution of W
+      under the null hypothesis.
+    </p>
+
+    <div class="layout">
+      <aside class="card controls">
+        <div class="field">
+          <div class="field-head"><label for="distribution">Data set</label></div>
+          <select id="distribution">
+            <option value="separated">Separated</option>
+            <option value="distinct">Distinct</option>
+            <option value="interleaved">Interleaved</option>
+          </select>
+        </div>
+        <div class="buttons" style="margin-top: 16px">
+          <button class="primary" id="step1">Shuffle once</button>
+          <button class="primary" id="step100">Shuffle 100×</button>
+          <button id="reset">Reset</button>
+        </div>
+
+        <div class="notes">
+          <p class="try">Try this</p>
+          <ol>
+            <li>For each data set, is the observed W unusually small?</li>
+            <li>The proportion of shuffles with W at most the observed value
+              estimates a one-sided p-value. How stable is it after 100 shuffles?</li>
+          </ol>
+        </div>
+      </aside>
+
+      <div class="content">
+        <section class="card tiles">
+          <div class="tile">
+            <div class="label">Observed W</div>
+            <div class="value" id="wdata"></div>
+            <div class="detail" id="wrange"></div>
+          </div>
+          <div class="tile">
+            <div class="label">Shuffles</div>
+            <div class="value" id="nsamples"></div>
+          </div>
+          <div class="tile">
+            <div class="label">Proportion with W ≤ observed</div>
+            <div class="value" id="pvalue"></div>
+            <div class="detail">estimated one-sided p-value</div>
+          </div>
+        </section>
+
+        <section class="card">
+          <h2>Observations and their ranks</h2>
+          <p class="card-sub">
+            <span class="swatch dot" style="background: var(--series-1)"></span>group A
+            <span class="swatch dot" style="background: var(--series-2); margin-left: 12px"></span>group B
+          </p>
+          <div id="strip" class="plot" style="height: 200px"></div>
+        </section>
+
+        <section class="card">
+          <h2>Distribution of W under the null hypothesis</h2>
+          <p class="card-sub">
+            <span class="swatch" style="background: var(--series-2)"></span>shuffles with W ≤ observed
+            <span class="swatch" style="background: var(--series-1); margin-left: 12px"></span>other shuffles
+          </p>
+          <div id="hist" class="plot"></div>
+        </section>
+      </div>
+    </div>
+  </main>
+
+  <script>
+    const DATASETS = {
+      separated: [[1, 2, 4, 4.8, 7.5], [3.5, 6, 8, 9, 10]],
+      distinct: [[1, 2, 3, 4, 5], [5.5, 6, 7, 9]],
+      interleaved: [[1, 3, 5, 7, 9], [2, 4, 6, 8]],
+    };
+
+    // State: the pooled data sorted by value, which observations are in group A,
+    // and the W-statistics of the shuffles drawn so far.
+    let data, inA, n1, n2, n, W, ws, lastShuffle;
+
+    function load() {
+      const [pop1, pop2] = DATASETS[document.getElementById("distribution").value];
+      const pooled = [...pop1.map(v => [v, true]), ...pop2.map(v => [v, false])];
+      pooled.sort((a, b) => a[0] - b[0]);
+      data = pooled.map(p => p[0]);
+      inA = pooled.map(p => p[1]);
+      n1 = pop1.length;
+      n2 = pop2.length;
+      n = n1 + n2;
+      W = sum(inA.map((a, i) => (a ? i + 1 : 0)));
+      reset();
+    }
+
+    function reset() {
+      ws = [];
+      lastShuffle = null;
+      update();
+    }
+
+    // Randomly assign group A to n1 of the n observations.
+    function shuffle() {
+      const ranks = seq(1, n, n);
+      for (let i = n - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [ranks[i], ranks[j]] = [ranks[j], ranks[i]];
+      }
+      const a = ranks.slice(0, n1);
+      return seq(1, n, n).map(r => a.includes(r));
+    }
+
+    function step(count) {
+      for (let i = 0; i < count; i++) {
+        lastShuffle = shuffle();
+        ws.push(sum(lastShuffle.map((a, i) => (a ? i + 1 : 0))));
+      }
+      update();
+    }
+
+    function update() {
+      const c = colors();
+      const wMin = n1 * (n1 + 1) / 2;
+      const wMax = n * (n + 1) / 2 - n2 * (n2 + 1) / 2;
+      const atMost = ws.filter(w => w <= W).length;
+      document.getElementById("wdata").textContent = W;
+      document.getElementById("wrange").textContent = "possible range " + wMin + " to " + wMax;
+      document.getElementById("nsamples").textContent = ws.length.toLocaleString();
+      document.getElementById("pvalue").textContent =
+        ws.length ? (atMost / ws.length).toFixed(3) : "–";
+
+      // Observed groups and the latest shuffle, one row each
+      const rows = [["Observed", inA]];
+      if (lastShuffle) rows.push(["Latest shuffle", lastShuffle]);
+      const strip = rows.map(([label, groups]) => ({
+        x: data, y: data.map(() => label), mode: "markers",
+        marker: { size: 18, color: groups.map(a => (a ? c.series1 : c.series2)),
+                  symbol: groups.map(a => (a ? "circle" : "square")),
+                  line: { color: c.surface, width: 2 } },
+        text: data.map((_, i) => "rank " + (i + 1)),
+        hovertemplate: "value %{x}, %{text}<extra></extra>",
+      }));
+      plot("strip", strip, {
+        xaxis: { tickvals: data, ticktext: data.map((_, i) => String(i + 1)), title: "Rank",
+                 showgrid: false, range: [Math.min(...data) - 0.6, Math.max(...data) + 0.6] },
+        yaxis: { autorange: "reversed", showgrid: false, showline: false,
+                 tickfont: { color: c.ink2, size: 13 } },
+      });
+
+      // Number of shuffles for each value of W
+      const values = seq(wMin, wMax, wMax - wMin + 1);
+      const counts = values.map(v => ws.filter(w => w === v).length);
+      const annotations = [{
+        x: W, y: 1, yref: "paper", text: "observed W = " + W, showarrow: false,
+        xanchor: "left", xshift: 6, yanchor: "top", font: { color: c.ink, size: 12 },
+      }];
+      if (ws.length) {
+        const last = ws[ws.length - 1];
+        annotations.push({
+          x: last, y: counts[last - wMin], text: "latest", showarrow: true, arrowhead: 0,
+          arrowcolor: c.ink2, ax: 0, ay: -24, font: { color: c.ink2, size: 11 },
+        });
+      }
+      plot("hist", [{
+        x: values, y: counts, type: "bar",
+        marker: { color: values.map(v => (v <= W ? c.series2 : c.series1)) },
+        hovertemplate: "W = %{x}: %{y} shuffles<extra></extra>",
+      }], {
+        bargap: 0.25,
+        xaxis: { title: "W", range: [wMin - 1, wMax + 1], showgrid: false },
+        yaxis: { title: "Number of shuffles", rangemode: "tozero" },
+        shapes: [{ type: "line", yref: "paper", x0: W, x1: W, y0: 0, y1: 1,
+                   line: { color: c.ink, width: 1, dash: "dot" } }],
+        annotations: annotations,
+      });
+    }
+
+    document.getElementById("distribution").addEventListener("change", load);
+    document.getElementById("step1").addEventListener("click", () => step(1));
+    document.getElementById("step100").addEventListener("click", () => step(100));
+    document.getElementById("reset").addEventListener("click", reset);
+    onThemeChange(update);
+    load();
+  </script>
+</body>
+</html>
