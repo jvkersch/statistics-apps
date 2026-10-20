@@ -1,0 +1,232 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>One-way ANOVA</title>
+  <link rel="stylesheet" href="../style.css">
+  <script src="https://cdn.jsdelivr.net/npm/plotly.js-dist-min@2.35.2/plotly.min.js"></script>
+  <script src="../common.js"></script>
+</head>
+<body>
+  <main class="app">
+    <a class="back" href="../">← All apps</a>
+    <h1>One-way ANOVA</h1>
+    <p class="lead">
+      Three groups are sampled from normal populations with a common standard
+      deviation. Compare the spread between the group means with the spread
+      within each group.
+    </p>
+
+    <div class="layout">
+      <aside class="card controls">
+        <div class="group">
+          <p class="group-title">Population means</p>
+          <div class="field">
+            <div class="field-head"><label for="mu1"><span class="swatch dot" style="background: var(--series-1)"></span>μ₁</label><input type="number" id="mu1-value" step="0.1" value="0"></div>
+            <input type="range" id="mu1" min="-2" max="2" step="0.1" value="0">
+          </div>
+          <div class="field">
+            <div class="field-head"><label for="mu2"><span class="swatch dot" style="background: var(--series-2)"></span>μ₂</label><input type="number" id="mu2-value" step="0.1" value="0"></div>
+            <input type="range" id="mu2" min="-2" max="2" step="0.1" value="0">
+          </div>
+          <div class="field">
+            <div class="field-head"><label for="mu3"><span class="swatch dot" style="background: var(--series-3)"></span>μ₃</label><input type="number" id="mu3-value" step="0.1" value="0"></div>
+            <input type="range" id="mu3" min="-2" max="2" step="0.1" value="0">
+          </div>
+        </div>
+
+        <div class="group">
+          <p class="group-title">Population and sample</p>
+          <div class="field">
+            <div class="field-head"><label for="sigma">Standard deviation σ</label><output id="sigma-value"></output></div>
+            <input type="range" id="sigma" min="0.1" max="3" step="0.1" value="1">
+          </div>
+          <div class="field">
+            <div class="field-head"><label for="n">Sample size per group n</label><output id="n-value"></output></div>
+            <input type="range" id="n" min="2" max="100" step="1" value="20">
+          </div>
+        </div>
+
+        <div class="group">
+          <p class="group-title">Show</p>
+          <label class="check"><input type="checkbox" id="show-means"> Sample means</label>
+          <label class="check"><input type="checkbox" id="show-grand-mean"> Grand mean</label>
+          <label class="check"><input type="checkbox" id="show-within"> Within-group deviations (MSW)</label>
+          <label class="check"><input type="checkbox" id="show-between"> Between-group deviations (MSB)</label>
+        </div>
+
+        <div class="notes">
+          <p class="try">Try this</p>
+          <ol>
+            <li>Keep the means equal. How large does F typically get?</li>
+            <li>Move one mean away from the others. How do MSB and F respond?</li>
+            <li>Now increase σ. Why does F drop, even though the means haven't changed?</li>
+          </ol>
+        </div>
+      </aside>
+
+      <div class="content">
+        <section class="card tiles">
+          <div class="tile">
+            <div class="label">Between-group variance (MSB)</div>
+            <div class="value" id="msb"></div>
+          </div>
+          <div class="tile">
+            <div class="label">Within-group variance (MSW)</div>
+            <div class="value" id="msw"></div>
+          </div>
+          <div class="tile">
+            <div class="label">F = MSB / MSW</div>
+            <div class="value" id="f-stat"></div>
+          </div>
+        </section>
+        <section class="card">
+          <div id="plot" class="plot tall"></div>
+        </section>
+      </div>
+    </div>
+  </main>
+
+  <script>
+    const GROUPS = ["Group 1", "Group 2", "Group 3"];
+    const JITTER = 0.15;
+
+    // Standardized samples (z-scores) and x-jitter for each group. These are
+    // only redrawn when n changes, so moving the mean/sigma sliders shifts and
+    // scales the same points instead of producing a new random sample.
+    let z = [];
+    let jitter = [];
+
+    function drawSamples(n) {
+      z = GROUPS.map(() => Array.from({ length: n }, rnorm));
+      jitter = GROUPS.map(() =>
+        Array.from({ length: n }, () => (Math.random() * 2 - 1) * JITTER)
+      );
+    }
+
+    const el = (id) => document.getElementById(id);
+
+    function update() {
+      const c = colors();
+      const series = [c.series1, c.series2, c.series3];
+      const mus = ["mu1", "mu2", "mu3"].map((id) => value(id + "-value"));
+      const sigma = value("sigma");
+
+      const traces = GROUPS.map((name, i) => ({
+        type: "scatter",
+        mode: "markers",
+        name,
+        x: jitter[i].map((dx) => i + dx),
+        y: z[i].map((zi) => mus[i] + sigma * zi),
+        marker: { color: series[i], size: 8, opacity: 0.7 },
+        hovertemplate: "%{y:.2f}<extra></extra>",
+      }));
+
+      const ys = traces.map((t) => t.y);
+      const groupMeans = ys.map(mean);
+      const grandMean = mean(ys.flat());
+
+      // Within-group deviations: a vertical segment from each point to its
+      // group mean. Segments are separated by nulls so they form one trace.
+      if (el("show-within").checked) {
+        GROUPS.forEach((name, i) => {
+          traces.push({
+            type: "scatter",
+            mode: "lines",
+            x: traces[i].x.flatMap((xj) => [xj, xj, null]),
+            y: ys[i].flatMap((yj) => [yj, groupMeans[i], null]),
+            line: { color: series[i], width: 1 },
+            hoverinfo: "skip",
+          });
+        });
+      }
+
+      // Between-group deviations: a thick segment from each group mean to the
+      // grand mean, drawn just right of the points.
+      if (el("show-between").checked) {
+        traces.push({
+          type: "scatter",
+          mode: "lines",
+          x: GROUPS.flatMap((_, i) => [i + 0.3, i + 0.3, null]),
+          y: groupMeans.flatMap((m) => [m, grandMean, null]),
+          line: { color: c.ink, width: 4 },
+          hoverinfo: "skip",
+        });
+      }
+
+      if (el("show-means").checked) {
+        traces.push({
+          type: "scatter",
+          mode: "markers",
+          x: [0, 1, 2],
+          y: groupMeans,
+          marker: {
+            symbol: "line-ew",
+            size: 60,
+            line: { width: 3, color: c.ink },
+          },
+          hovertemplate: "Sample mean: %{y:.2f}<extra></extra>",
+        });
+      }
+
+      if (el("show-grand-mean").checked) {
+        traces.push({
+          type: "scatter",
+          mode: "lines",
+          x: [-0.5, 2.5],
+          y: [grandMean, grandMean],
+          line: { color: c.ink2, width: 2, dash: "dash" },
+          hovertemplate: "Grand mean: %{y:.2f}<extra></extra>",
+        });
+      }
+
+      plot("plot", traces, {
+        xaxis: {
+          tickvals: [0, 1, 2],
+          ticktext: GROUPS,
+          range: [-0.5, 2.5],
+          showgrid: false,
+        },
+        yaxis: { range: [-5, 5], title: "y" },
+      });
+
+      // One-way ANOVA mean squares and F-statistic.
+      const k = ys.length;
+      const N = ys.flat().length;
+      const ssb = sum(ys.map((y, i) => y.length * (groupMeans[i] - grandMean) ** 2));
+      const ssw = sum(ys.map((y, i) => sum(y.map((yi) => (yi - groupMeans[i]) ** 2))));
+      const msb = ssb / (k - 1);
+      const msw = ssw / (N - k);
+      el("msb").textContent = msb.toFixed(3);
+      el("msw").textContent = msw.toFixed(3);
+      el("f-stat").textContent = (msb / msw).toFixed(3);
+    }
+
+    // Keep each mean slider and its number box in sync; the number box holds
+    // the value used for plotting, so typed values may exceed the slider range.
+    ["mu1", "mu2", "mu3"].forEach((id) => {
+      el(id).addEventListener("input", () => {
+        el(id + "-value").value = el(id).value;
+        update();
+      });
+      el(id + "-value").addEventListener("input", () => {
+        el(id).value = el(id + "-value").value;
+        update();
+      });
+    });
+    bindSlider("sigma", update);
+    bindSlider("n", () => {
+      drawSamples(value("n"));
+      update();
+    });
+    ["show-means", "show-grand-mean", "show-within", "show-between"].forEach((id) =>
+      el(id).addEventListener("change", update)
+    );
+
+    drawSamples(value("n"));
+    update();
+    onThemeChange(update);
+  </script>
+</body>
+</html>
