@@ -1,0 +1,333 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Multiple Linear Regression</title>
+  <link rel="stylesheet" href="../style.css">
+  <script src="https://cdn.jsdelivr.net/npm/plotly.js-dist-min@2.35.2/plotly.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/jstat@1.9.6/dist/jstat.min.js"></script>
+  <script src="../common.js"></script>
+  <style>
+    details summary {
+      cursor: pointer;
+      color: var(--ink-2);
+      font-size: 14px;
+    }
+    details pre {
+      margin-top: 12px;
+    }
+  </style>
+</head>
+<body>
+  <main class="app">
+    <a class="back" href="../">← All apps</a>
+    <h1>Multiple linear regression</h1>
+    <p class="lead">
+      Model the length of 26 Japanese larches from the nitrogen and phosphorus
+      content of their needles. Add or remove terms and see how the fitted surface
+      and the effect of nitrogen change.
+    </p>
+
+    <div class="layout">
+      <aside class="card controls">
+        <p class="group-title">Model terms</p>
+        <label class="check"><input type="checkbox" id="nitrogen" checked> Nitrogen</label>
+        <label class="check"><input type="checkbox" id="phosphor" checked> Phosphorus</label>
+        <label class="check"><input type="checkbox" id="interaction"> Nitrogen × Phosphorus</label>
+        <p class="formula" id="formula" style="margin-top: 14px"></p>
+
+        <div class="notes">
+          <p>Drag the 3D plot to view the regression surface from different angles.</p>
+          <p class="try">Try this</p>
+          <ol>
+            <li>What is the relation between the two effect plots?</li>
+            <li>When is the effect of nitrogen a flat line? When does it depend on phosphorus?</li>
+          </ol>
+        </div>
+      </aside>
+
+      <div class="content">
+        <section class="card tiles">
+          <div class="tile">
+            <div class="label">R²</div>
+            <div class="value" id="r2"></div>
+            <div class="detail">share of variation explained</div>
+          </div>
+          <div class="tile">
+            <div class="label">Adjusted R²</div>
+            <div class="value" id="adj-r2"></div>
+            <div class="detail">penalised for extra terms</div>
+          </div>
+          <div class="tile">
+            <div class="label">Residual standard error</div>
+            <div class="value" id="sigma"></div>
+            <div class="detail" id="df"></div>
+          </div>
+        </section>
+
+        <section class="card">
+          <h2>Fitted surface</h2>
+          <p class="card-sub">dots: the 26 trees</p>
+          <div id="plot" class="plot tall"></div>
+        </section>
+
+        <div class="row">
+          <section class="card">
+            <h2>Length against nitrogen</h2>
+            <p class="card-sub">predicted length at four phosphorus levels</p>
+            <div id="plot_nitrogen_traces" class="plot short"></div>
+          </section>
+          <section class="card">
+            <h2>Effect of one unit of nitrogen</h2>
+            <p class="card-sub">as a function of phosphorus</p>
+            <div id="plot_nitrogen_effect" class="plot short"></div>
+          </section>
+        </div>
+
+        <section class="card">
+          <h2>Coefficients</h2>
+          <table>
+            <thead>
+              <tr><th>Term</th><th>Estimate</th><th>Std. error</th><th>t value</th><th>p-value</th></tr>
+            </thead>
+            <tbody id="coefficients"></tbody>
+          </table>
+          <details style="margin-top: 16px">
+            <summary>Show as R output</summary>
+            <pre id="summary"></pre>
+          </details>
+        </section>
+      </div>
+    </div>
+  </main>
+
+  <script>
+    // Japanese larch dataset (from needles.txt)
+    const NEEDLES = {
+      nitrogen: [2.2, 2.1, 1.52, 2.88, 2.18, 1.87, 1.52, 2.37, 2.06, 1.84, 1.89, 2.45, 1.88,
+                 1.93, 1.8, 1.81, 1.49, 1.53, 1.43, 1.54, 1.13, 1.63, 1.36, 1.76, 2.53, 2.59],
+      phosphor: [0.417, 0.354, 0.208, 0.335, 0.314, 0.271, 0.164, 0.302, 0.373, 0.265, 0.192,
+                 0.221, 0.186, 0.207, 0.157, 0.195, 0.165, 0.226, 0.224, 0.271, 0.187, 0.2,
+                 0.211, 0.283, 0.284, 0.303],
+      length: [351, 249, 171, 373, 321, 191, 225, 291, 284, 213, 138, 213, 151, 130, 93, 95,
+               147, 88, 65, 120, 72, 160, 72, 252, 310, 336],
+    };
+
+    const TERMS = {
+      nitrogen: { label: "nitrogen", value: (n, p) => n },
+      phosphor: { label: "phosphor", value: (n, p) => p },
+      interaction: { label: "I(nitrogen * phosphor)", value: (n, p) => n * p },
+    };
+
+    // Invert a small square matrix with Gauss-Jordan elimination.
+    function invert(A) {
+      const k = A.length;
+      const M = A.map((row, i) => [...row, ...row.map((_, j) => (i === j ? 1 : 0))]);
+      for (let c = 0; c < k; c++) {
+        let pivot = c;
+        for (let r = c + 1; r < k; r++) {
+          if (Math.abs(M[r][c]) > Math.abs(M[pivot][c])) pivot = r;
+        }
+        [M[c], M[pivot]] = [M[pivot], M[c]];
+        const d = M[c][c];
+        for (let j = 0; j < 2 * k; j++) M[c][j] /= d;
+        for (let r = 0; r < k; r++) {
+          if (r === c) continue;
+          const f = M[r][c];
+          for (let j = 0; j < 2 * k; j++) M[r][j] -= f * M[c][j];
+        }
+      }
+      return M.map(row => row.slice(k));
+    }
+
+    // Ordinary least squares fit of length on the selected terms, with the
+    // statistics reported by R's summary(lm(...)).
+    function fitModel(terms) {
+      const y = NEEDLES.length;
+      const n = y.length;
+      const X = y.map((_, i) => [1, ...terms.map(
+        t => TERMS[t].value(NEEDLES.nitrogen[i], NEEDLES.phosphor[i]))]);
+      const p = X[0].length;
+
+      const XtX = [];
+      for (let a = 0; a < p; a++) {
+        XtX.push([]);
+        for (let b = 0; b < p; b++) XtX[a].push(sum(X.map(row => row[a] * row[b])));
+      }
+      const XtXinv = invert(XtX);
+      const Xty = [];
+      for (let a = 0; a < p; a++) Xty.push(sum(X.map((row, i) => row[a] * y[i])));
+      const coefs = XtXinv.map(row => sum(row.map((v, b) => v * Xty[b])));
+
+      const fitted = X.map(row => sum(row.map((v, b) => v * coefs[b])));
+      const residuals = y.map((v, i) => v - fitted[i]);
+      const df = n - p;
+      const rss = sum(residuals.map(r => r * r));
+      const sigma = Math.sqrt(rss / df);
+      const ybar = mean(y);
+      const tss = sum(y.map(v => (v - ybar) ** 2));
+
+      const se = XtXinv.map((row, a) => sigma * Math.sqrt(row[a]));
+      const t = coefs.map((b, i) => b / se[i]);
+      const pValues = t.map(v => 2 * (1 - jStat.studentt.cdf(Math.abs(v), df)));
+      const r2 = 1 - rss / tss;
+      const F = ((tss - rss) / (p - 1)) / (rss / df);
+
+      return {
+        names: ["(Intercept)", ...terms.map(t => TERMS[t].label)],
+        terms: terms,
+        coefs: coefs,
+        se: se,
+        t: t,
+        pValues: pValues,
+        residuals: residuals,
+        df: df,
+        sigma: sigma,
+        r2: r2,
+        adjR2: 1 - (1 - r2) * (n - 1) / df,
+        F: F,
+        pF: 1 - jStat.centralF.cdf(F, p - 1, df),
+        p: p,
+      };
+    }
+
+    function coef(model, term) {
+      const i = model.terms.indexOf(term);
+      return i < 0 ? 0 : model.coefs[i + 1];
+    }
+
+    function predict(model, nitrogen, phosphor) {
+      return model.coefs[0] +
+        coef(model, "nitrogen") * nitrogen +
+        coef(model, "phosphor") * phosphor +
+        coef(model, "interaction") * nitrogen * phosphor;
+    }
+
+    function formatP(p) {
+      return p < 2e-16 ? "<2e-16" : p < 1e-4 ? p.toExponential(2) : Number(p.toPrecision(3)).toString();
+    }
+
+    function stars(p) {
+      return p < 0.001 ? "***" : p < 0.01 ? "**" : p < 0.05 ? "*" : p < 0.1 ? "." : "";
+    }
+
+    // Text summary in the style of R's summary(lm(...)).
+    function summaryText(model) {
+      const fmt = x => Number(x.toPrecision(4)).toString();
+      const table = rows => {
+        const widths = rows[0].map((_, j) => Math.max(...rows.map(r => r[j].length)));
+        return rows.map(r => r.map((c, j) => (j === 0 ? c.padEnd(widths[j]) : c.padStart(widths[j]))).join(" ")).join("\n");
+      };
+
+      const formula = "length ~ " + (model.terms.length ? model.names.slice(1).join(" + ") : "1");
+      const lines = ["Call:", "lm(formula = " + formula + ", data = needles)", "", "Residuals:"];
+      lines.push(table([
+        ["", "Min", "1Q", "Median", "3Q", "Max"],
+        ["", ...[0, 0.25, 0.5, 0.75, 1].map(q => quantile(model.residuals, q).toFixed(2))],
+      ]));
+
+      lines.push("", "Coefficients:");
+      const rows = [["", "Estimate", "Std. Error", "t value", "Pr(>|t|)", ""]];
+      model.names.forEach((name, i) => {
+        rows.push([name, model.coefs[i].toFixed(2), model.se[i].toFixed(2), model.t[i].toFixed(3),
+                   formatP(model.pValues[i]), stars(model.pValues[i])]);
+      });
+      lines.push(table(rows));
+      lines.push("---", "Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1", "");
+      lines.push("Residual standard error: " + fmt(model.sigma) + " on " + model.df + " degrees of freedom");
+      if (model.p > 1) {
+        lines.push("Multiple R-squared:  " + fmt(model.r2) + ",\tAdjusted R-squared:  " + fmt(model.adjR2));
+        lines.push("F-statistic: " + fmt(model.F) + " on " + (model.p - 1) + " and " + model.df +
+                   " DF,  p-value: " + formatP(model.pF));
+      }
+      return lines.join("\n");
+    }
+
+    const TERM_NAMES = ["Intercept", "Nitrogen", "Phosphorus", "Nitrogen × Phosphorus"];
+    const TERM_SYMBOLS = { nitrogen: "N", phosphor: "P", interaction: "N·P" };
+
+    function showSummary(model) {
+      document.getElementById("r2").textContent = model.r2.toFixed(3);
+      document.getElementById("adj-r2").textContent = model.adjR2.toFixed(3);
+      document.getElementById("sigma").textContent = model.sigma.toFixed(1);
+      document.getElementById("df").textContent = "on " + model.df + " degrees of freedom";
+
+      let formula = "length = " + model.coefs[0].toFixed(1);
+      model.terms.forEach((t, i) => {
+        const b = model.coefs[i + 1];
+        formula += (b < 0 ? " − " : " + ") + Math.abs(b).toFixed(1) + " " + TERM_SYMBOLS[t];
+      });
+      document.getElementById("formula").textContent = formula;
+
+      const names = ["Intercept", ...model.terms.map(t => TERM_NAMES[Object.keys(TERMS).indexOf(t) + 1])];
+      document.getElementById("coefficients").innerHTML = names.map((name, i) =>
+        "<tr><td>" + name + "</td><td>" + model.coefs[i].toFixed(2) + "</td><td>" +
+        model.se[i].toFixed(2) + "</td><td>" + model.t[i].toFixed(2) + "</td><td>" +
+        formatP(model.pValues[i]) + "</td></tr>").join("");
+      document.getElementById("summary").textContent = summaryText(model);
+    }
+
+    // Plotting grid
+    const NITROGEN = seq(1, 3, 50);
+    const PHOSPHOR = seq(0.15, 0.40, 50);
+
+    function update() {
+      const c = colors();
+      const terms = Object.keys(TERMS).filter(t => document.getElementById(t).checked);
+      const model = fitModel(terms);
+      showSummary(model);
+
+      // Plotly expects the x-values to increase across the columns, and the
+      // y-values across the rows.
+      const Z = PHOSPHOR.map(p => NITROGEN.map(n => predict(model, n, p)));
+      const axis3d = title => ({ title: title, gridcolor: c.grid, zerolinecolor: c.axis,
+                                 linecolor: c.axis, backgroundcolor: "rgba(0,0,0,0)" });
+      plot("plot", [
+        { type: "surface", x: NITROGEN, y: PHOSPHOR, z: Z, opacity: 0.85,
+          colorscale: [[0, "#cde2fb"], [0.5, "#5598e7"], [1, "#104281"]],
+          colorbar: { title: { text: "Length", side: "right" }, thickness: 12, outlinewidth: 0 },
+          hovertemplate: "N = %{x:.2f}<br>P = %{y:.3f}<br>length %{z:.0f}<extra></extra>" },
+        { type: "scatter3d", mode: "markers", x: NEEDLES.nitrogen, y: NEEDLES.phosphor,
+          z: NEEDLES.length, marker: { size: 4, color: c.series2 },
+          hovertemplate: "N = %{x}<br>P = %{y}<br>length %{z}<extra></extra>" },
+      ], {
+        scene: {
+          xaxis: axis3d("Nitrogen"),
+          yaxis: axis3d("Phosphorus"),
+          zaxis: axis3d("Length"),
+          camera: { eye: { x: 1.6, y: -1.6, z: 0.8 } },
+        },
+        uirevision: "keep",
+      }, { scrollZoom: false });
+
+      const nitrogen = seq(1.0, 3.0, 10);
+      const ramp = ["#9ec5f4", "#5598e7", "#256abf", "#104281"];
+      plot("plot_nitrogen_traces", [0.15, 0.20, 0.25, 0.30].map((p, i) => ({
+        x: nitrogen, y: nitrogen.map(n => predict(model, n, p)),
+        mode: "lines", name: "P = " + p.toFixed(2), line: { color: ramp[i], width: 2 },
+      })), {
+        showlegend: true,
+        hovermode: "x unified",
+        xaxis: { title: "Nitrogen" },
+        yaxis: { title: "Length" },
+      });
+
+      const phosphor = seq(0.15, 0.35, 10);
+      plot("plot_nitrogen_effect", [{
+        x: phosphor,
+        y: phosphor.map(p => coef(model, "nitrogen") + coef(model, "interaction") * p),
+        mode: "lines", line: { color: c.series1, width: 2 },
+        hovertemplate: "P = %{x:.2f}<br>effect %{y:.1f}<extra></extra>",
+      }], {
+        xaxis: { title: "Phosphorus" },
+        yaxis: { title: "Length per unit of nitrogen", rangemode: "tozero" },
+      });
+    }
+
+    Object.keys(TERMS).forEach(t => document.getElementById(t).addEventListener("change", update));
+    onThemeChange(update);
+    update();
+  </script>
+</body>
+</html>

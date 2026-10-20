@@ -1,0 +1,156 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Newcombe AUC Intervals</title>
+  <link rel="stylesheet" href="../style.css">
+  <script src="https://cdn.jsdelivr.net/npm/plotly.js-dist-min@2.35.2/plotly.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/jstat@1.9.6/dist/jstat.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/mathjax@3.2.2/es5/tex-mml-chtml.js" async></script>
+  <script src="../common.js"></script>
+</head>
+<body>
+  <main class="app">
+    <a class="back" href="../">← All apps</a>
+    <h1>Confidence intervals for the AUC</h1>
+    <p class="lead">
+      Newcombe (2006) compares several 95% confidence intervals for the area
+      under the ROC curve. Methods 2 and 4 are Wald-type intervals; methods 3 and
+      5 are score-type intervals: they solve for each endpoint, which keeps them inside [0, 1].
+    </p>
+
+    <div class="layout">
+      <aside class="card controls">
+        <div class="field">
+          <div class="field-head"><label for="auc">Estimated AUC</label><output id="auc-value"></output></div>
+          <input type="range" id="auc" min="0" max="1" step="0.01" value="0.5">
+        </div>
+        <div class="field">
+          <div class="field-head"><label for="events">Number of events \(m\)</label><output id="events-value"></output></div>
+          <input type="range" id="events" min="2" max="100" step="1" value="10">
+        </div>
+        <div class="field">
+          <div class="field-head"><label for="nonevents">Number of non-events \(n\)</label><output id="nonevents-value"></output></div>
+          <input type="range" id="nonevents" min="2" max="100" step="1" value="10">
+        </div>
+
+        <div class="notes">
+          <p class="try">Try this</p>
+          <ol>
+            <li>Push the AUC towards 1. Which intervals stray outside [0, 1]?</li>
+            <li>Make the groups unbalanced. Which methods react most?</li>
+          </ol>
+        </div>
+      </aside>
+
+      <div class="content">
+        <section class="card">
+          <h2>95% confidence intervals</h2>
+          <p class="card-sub">dot: estimated AUC · dotted lines: the possible range [0, 1]</p>
+          <div id="forest_plot" class="plot short"></div>
+        </section>
+        <section class="card">
+          <table>
+            <thead>
+              <tr><th>Method</th><th>Type</th><th>\(m^*, n^*\)</th><th>Lower</th><th>Upper</th><th>Width</th></tr>
+            </thead>
+            <tbody id="table"></tbody>
+          </table>
+        </section>
+      </div>
+    </div>
+  </main>
+
+  <script>
+    const ALPHA = 0.05;
+
+    function V(theta, mStar, nStar, m, n) {
+      return theta * (1 - theta) * (1 + nStar * (1 - theta) / (2 - theta)
+                                      + mStar * theta / (1 + theta)) / m / n;
+    }
+
+    function newcombeExplicit(thetaHat, mStar, nStar, m, n) {
+      const z = jStat.normal.inv(1 - ALPHA / 2, 0, 1);
+      const w = z * Math.sqrt(V(thetaHat, mStar, nStar, m, n));
+      return [thetaHat - w, thetaHat + w];
+    }
+
+    // Find the root of f on [a, b] by bisection; f(a) and f(b) differ in sign.
+    function bisect(f, a, b) {
+      let fa = f(a);
+      for (let i = 0; i < 60; i++) {
+        const c = (a + b) / 2;
+        const fc = f(c);
+        if ((fc < 0) === (fa < 0)) {
+          a = c;
+          fa = fc;
+        } else {
+          b = c;
+        }
+      }
+      return (a + b) / 2;
+    }
+
+    function newcombeImplicit(thetaHat, mStar, nStar, m, n) {
+      const z = jStat.normal.inv(1 - ALPHA / 2, 0, 1);
+      const f = zz => theta => thetaHat - theta + zz * Math.sqrt(V(theta, mStar, nStar, m, n));
+      return [bisect(f(-z), 0, thetaHat), bisect(f(z), thetaHat, 1)];
+    }
+
+    const METHODS = [
+      { name: "Method 2", type: "Wald", stars: "m − 1, n − 1",
+        ci: (t, m, n) => newcombeExplicit(t, m - 1, n - 1, m, n) },
+      { name: "Method 3", type: "Score", stars: "m − 1, n − 1",
+        ci: (t, m, n) => newcombeImplicit(t, m - 1, n - 1, m, n) },
+      { name: "Method 4", type: "Wald", stars: "(m + n)/2 − 1",
+        ci: (t, m, n) => newcombeExplicit(t, (m + n) / 2 - 1, (m + n) / 2 - 1, m, n) },
+      { name: "Method 5", type: "Score", stars: "(m + n)/2 − 1",
+        ci: (t, m, n) => newcombeImplicit(t, (m + n) / 2 - 1, (m + n) / 2 - 1, m, n) },
+    ];
+
+    function update() {
+      const c = colors();
+      const auc = value("auc");
+      const events = value("events");
+      const nonevents = value("nonevents");
+      const intervals = METHODS.map(method => method.ci(auc, events, nonevents));
+      const labels = METHODS.map(method => method.name);
+
+      const traces = METHODS.map((method, i) => ({
+        x: intervals[i], y: [method.name, method.name], mode: "lines",
+        line: { color: c.series1, width: 4 },
+        hovertemplate: method.name + " endpoint %{x:.3f}<extra></extra>",
+      }));
+      traces.push({
+        x: labels.map(() => auc), y: labels, mode: "markers",
+        marker: { color: c.series1, size: 12, line: { color: c.surface, width: 2 } },
+        hovertemplate: "AUC %{x:.2f}<extra></extra>",
+      });
+
+      const vline = x => ({ type: "line", yref: "paper", x0: x, x1: x, y0: 0, y1: 1,
+                            line: { color: c.ink2, width: 1, dash: "dot" } });
+      plot("forest_plot", traces, {
+        font: { size: 13 },
+        xaxis: { title: "Area under the curve", range: [-0.15, 1.15], dtick: 0.2, zeroline: false },
+        yaxis: { autorange: "reversed", showgrid: false, showline: false,
+                 tickfont: { color: c.ink2, size: 13 } },
+        shapes: [vline(0), vline(1)],
+      });
+
+      const fmt = x => {
+        const s = x.toFixed(3);
+        return x < 0 || x > 1 ? '<span class="bad">' + s + "</span>" : s;
+      };
+      document.getElementById("table").innerHTML = METHODS.map((method, i) =>
+        "<tr><td>" + method.name + "</td><td>" + method.type + "</td><td>" + method.stars +
+        "</td><td>" + fmt(intervals[i][0]) + "</td><td>" + fmt(intervals[i][1]) + "</td><td>" +
+        (intervals[i][1] - intervals[i][0]).toFixed(3) + "</td></tr>").join("");
+    }
+
+    ["auc", "events", "nonevents"].forEach(id => bindSlider(id, update));
+    onThemeChange(update);
+    update();
+  </script>
+</body>
+</html>

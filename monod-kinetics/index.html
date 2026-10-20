@@ -1,0 +1,149 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Monod Kinetics</title>
+  <link rel="stylesheet" href="../style.css">
+  <script src="https://cdn.jsdelivr.net/npm/plotly.js-dist-min@2.35.2/plotly.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/mathjax@3.2.2/es5/tex-mml-chtml.js" async></script>
+  <script src="../common.js"></script>
+</head>
+<body>
+  <main class="app">
+    <a class="back" href="../">← All apps</a>
+    <h1>Monod kinetics</h1>
+    <p class="lead">
+      Fit a double Monod model to oxygen uptake rate (OUR) measurements by hand.
+      Each single Monod model follows
+      \(\frac{dS}{dt} = -\frac{\alpha S}{\beta + S}\), and the double model is
+      the sum of two of them.
+    </p>
+
+    <div class="layout">
+      <aside class="card controls">
+        <div class="group">
+          <p class="group-title"><span class="swatch dashed" style="border-color: var(--series-2)"></span>Monod 1</p>
+          <div class="field">
+            <div class="field-head"><label for="alpha1">\(\alpha\): maximum rate</label><output id="alpha1-value"></output></div>
+            <input type="range" id="alpha1" min="0" max="2" step="0.001" value="0.344">
+          </div>
+          <div class="field">
+            <div class="field-head"><label for="beta1">\(\beta\): half-saturation</label><output id="beta1-value"></output></div>
+            <input type="range" id="beta1" min="0" max="10" step="0.001" value="1.67">
+          </div>
+          <div class="field">
+            <div class="field-head"><label for="s1">\(S_0\): initial substrate</label><output id="s1-value"></output></div>
+            <input type="range" id="s1" min="0" max="6" step="0.001" value="4.22">
+          </div>
+        </div>
+        <div class="group">
+          <p class="group-title"><span class="swatch dashed" style="border-color: var(--series-3)"></span>Monod 2</p>
+          <div class="field">
+            <div class="field-head"><label for="alpha2">\(\alpha\): maximum rate</label><output id="alpha2-value"></output></div>
+            <input type="range" id="alpha2" min="0" max="2" step="0.001" value="0.47">
+          </div>
+          <div class="field">
+            <div class="field-head"><label for="beta2">\(\beta\): half-saturation</label><output id="beta2-value"></output></div>
+            <input type="range" id="beta2" min="0" max="3" step="0.001" value="0.13">
+          </div>
+          <div class="field">
+            <div class="field-head"><label for="s2">\(S_0\): initial substrate</label><output id="s2-value"></output></div>
+            <input type="range" id="s2" min="0" max="6" step="0.001" value="4.09">
+          </div>
+        </div>
+      </aside>
+
+      <div class="content">
+        <section class="card tiles">
+          <div class="tile">
+            <div class="label">Fit error (RMSE)</div>
+            <div class="value" id="rmse"></div>
+            <div class="detail">root mean squared distance between the combined model and the data</div>
+          </div>
+        </section>
+        <section class="card">
+          <div id="plot" class="plot tall"></div>
+        </section>
+      </div>
+    </div>
+  </main>
+
+  <script>
+    // Oxygen uptake rate (OUR) measurements, from vanrolleghem_our.csv
+    const OUR_DATA = [
+      [0, 0.7000], [0.752508, 0.6962], [1.50502, 0.7016], [2.25753, 0.6964],
+      [3.01003, 0.6886], [3.76254, 0.6702], [4.51505, 0.6719], [5.26756, 0.6609],
+      [6.02007, 0.6503], [6.77258, 0.6378], [7.52508, 0.6345], [8.27759, 0.6096],
+      [9.0301, 0.4783], [9.78261, 0.2997], [10.5351, 0.2089], [11.2876, 0.1867],
+      [12.0401, 0.1710], [12.7926, 0.1536], [13.5452, 0.1500], [14.2977, 0.1573],
+      [15.0502, 0.1529], [15.8027, 0.1417], [16.5552, 0.1390], [17.3077, 0.1300],
+      [18.0602, 0.1199], [18.8127, 0.1099], [19.5652, 0.1047], [20.3177, 0.0959],
+      [21.0702, 0.0790], [21.8227, 0.0740], [22.5753, 0.0670], [23.3278, 0.0552],
+      [24.0803, 0.0367], [24.8328, 0.0255], [25.5853, 0.0143], [26.3378, 0.0094],
+      [27.0903, 0.0087], [27.8428, 0.0035], [28.5953, 0.0057], [29.3478, 0.0022],
+      [30.1003, 0.0011], [30.8528, 0.0033], [31.6054, 0.0028], [32.3579, -0.0076],
+      [33.1104, 0.0013], [33.8629, 0.0009], [34.6154, -0.0066], [35.3679, -0.0023],
+      [36.1204, 0.0066], [36.8729, -0.0033], [37.6254, -0.0047], [38.3779, 0.0037],
+      [39.1304, -0.0030], [39.8829, 0.0042], [40.6355, -0.0007], [41.388, 0.0009],
+      [42.1405, 0.0036], [42.893, -0.0056], [43.6455, -0.0037], [44.398, -0.0027],
+    ];
+
+    const DT = 0.1;
+    const TIMES = seq(0, 45, 451);
+
+    // Rate alpha*s/(beta + s); substrate that is used up stays used up.
+    function monodRate(s, alpha, beta) {
+      return s > 0 ? alpha * s / (beta + s) : 0;
+    }
+
+    // Integrate dS/dt = -rate(S) with RK4 and return the rate at each time.
+    function singleMonod(alpha, beta, s0) {
+      const f = s => -monodRate(s, alpha, beta);
+      let s = s0;
+      const rates = [];
+      for (let i = 0; i < TIMES.length; i++) {
+        rates.push(monodRate(s, alpha, beta));
+        const k1 = f(s);
+        const k2 = f(s + DT * k1 / 2);
+        const k3 = f(s + DT * k2 / 2);
+        const k4 = f(s + DT * k3);
+        s += DT * (k1 + 2 * k2 + 2 * k3 + k4) / 6;
+      }
+      return rates;
+    }
+
+    function update() {
+      const c = colors();
+      const m1 = singleMonod(value("alpha1"), value("beta1"), value("s1"));
+      const m2 = singleMonod(value("alpha2"), value("beta2"), value("s2"));
+      const combined = m1.map((r, i) => r + m2[i]);
+
+      // Compare the model with each measurement at the nearest time step
+      const errors = OUR_DATA.map(([t, our]) => combined[Math.round(t / DT)] - our);
+      document.getElementById("rmse").textContent =
+        Math.sqrt(mean(errors.map(e => e * e))).toFixed(4);
+
+      plot("plot", [
+        { x: TIMES, y: m1, mode: "lines", name: "Monod 1",
+          line: { color: c.series2, width: 2, dash: "dash" } },
+        { x: TIMES, y: m2, mode: "lines", name: "Monod 2",
+          line: { color: c.series3, width: 2, dash: "dash" } },
+        { x: TIMES, y: combined, mode: "lines", name: "Combined model",
+          line: { color: c.series1, width: 2.5 } },
+        { x: OUR_DATA.map(d => d[0]), y: OUR_DATA.map(d => d[1]), mode: "markers",
+          name: "Measurements", marker: { color: c.ink2, size: 6 } },
+      ], {
+        showlegend: true,
+        hovermode: "x unified",
+        xaxis: { title: "Time" },
+        yaxis: { title: "Oxygen uptake rate", range: [-0.02, 0.85] },
+      });
+    }
+
+    ["alpha1", "beta1", "s1", "alpha2", "beta2", "s2"].forEach(id => bindSlider(id, update));
+    onThemeChange(update);
+    update();
+  </script>
+</body>
+</html>

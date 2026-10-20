@@ -1,0 +1,125 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Binomial Approximation</title>
+  <link rel="stylesheet" href="../style.css">
+  <script src="https://cdn.jsdelivr.net/npm/plotly.js-dist-min@2.35.2/plotly.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/jstat@1.9.6/dist/jstat.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/mathjax@3.2.2/es5/tex-mml-chtml.js" async></script>
+  <script src="../common.js"></script>
+</head>
+<body>
+  <main class="app">
+    <a class="back" href="../">← All apps</a>
+    <h1>Normal approximation to the binomial</h1>
+    <p class="lead">
+      The bars show the binomial distribution \(B(n, p)\). The curve is the
+      normal distribution with the same mean \(\mu = np\) and variance
+      \(\sigma^2 = np(1-p)\).
+    </p>
+
+    <div class="layout">
+      <aside class="card controls">
+        <div class="field">
+          <div class="field-head"><label for="n">Number of trials \(n\)</label><output id="n-value"></output></div>
+          <input type="range" id="n" min="1" max="50" step="1" value="30">
+        </div>
+        <div class="field">
+          <div class="field-head"><label for="p">Probability of success \(p\)</label><output id="p-value"></output></div>
+          <input type="range" id="p" min="0.01" max="0.99" step="0.01" value="0.5">
+        </div>
+        <label class="check"><input type="checkbox" id="truncate" checked> Zoom in on the bulk of the distribution</label>
+
+        <div class="notes">
+          <p>A common rule of thumb: the approximation works well as long as \(np(1-p) > 5\).</p>
+          <p class="try">Try this</p>
+          <ol>
+            <li>Make \(p\) small. When does the approximation break down?</li>
+            <li>How large must \(n\) be for \(p = 0.1\)?</li>
+          </ol>
+        </div>
+      </aside>
+
+      <div class="content">
+        <section class="card tiles">
+          <div class="tile">
+            <div class="label">np(1 − p)</div>
+            <div class="value" id="variance"></div>
+            <div class="detail" id="condition"></div>
+          </div>
+          <div class="tile">
+            <div class="label">Largest relative error</div>
+            <div class="value" id="error"></div>
+            <div class="detail">at the outcome where the curves differ most</div>
+          </div>
+        </section>
+        <section class="card">
+          <div id="plot" class="plot tall"></div>
+        </section>
+      </div>
+    </div>
+  </main>
+
+  <script>
+    function update() {
+      const c = colors();
+      const n = value("n");
+      const p = value("p");
+      const mu = n * p;
+      const sigma = Math.sqrt(n * p * (1 - p));
+
+      const allXs = seq(0, n, n + 1);
+      const allYs = allXs.map(k => jStat.binomial.pdf(k, n, p));
+
+      let xs = allXs;
+      let ys = allYs;
+      if (document.getElementById("truncate").checked) {
+        xs = allXs.filter((_, i) => allYs[i] > 0.01);
+        ys = allYs.filter(y => y > 0.01);
+      }
+
+      const xsNorm = seq(Math.min(...xs) - 0.5, Math.max(...xs) + 0.5, 200);
+      plot("plot", [
+        { x: xs, y: ys, type: "bar", name: "Binomial B(n, p)",
+          marker: { color: c.series1 }, width: 0.6,
+          hovertemplate: "P(X = %{x}) = %{y:.4f}<extra></extra>" },
+        { x: xsNorm, y: xsNorm.map(x => jStat.normal.pdf(x, mu, sigma)), mode: "lines",
+          name: "Normal approximation", line: { color: c.series2, width: 2.5 },
+          hovertemplate: "density %{y:.4f}<extra></extra>" },
+      ], {
+        showlegend: true,
+        xaxis: { title: "Number of successes", dtick: xs.length > 25 ? 2 : 1, showgrid: false },
+        yaxis: { title: "Probability", rangemode: "tozero" },
+        bargap: 0.3,
+      });
+
+      // Largest relative error over all outcomes
+      let error = 0;
+      let maxDiff = -1;
+      allXs.forEach((x, i) => {
+        const diff = Math.abs(allYs[i] - jStat.normal.pdf(x, mu, sigma));
+        if (diff > maxDiff) {
+          maxDiff = diff;
+          error = diff / allYs[i];
+        }
+      });
+      document.getElementById("error").textContent = (100 * error).toFixed(1) + "%";
+
+      const variance = n * p * (1 - p);
+      const ok = variance > 5;
+      document.getElementById("variance").textContent = variance.toFixed(1);
+      const condition = document.getElementById("condition");
+      condition.textContent = ok ? "✓ above 5: approximation reliable" : "✗ below 5: approximation unreliable";
+      condition.className = "detail " + (ok ? "good" : "bad");
+    }
+
+    bindSlider("n", update);
+    bindSlider("p", update);
+    document.getElementById("truncate").addEventListener("change", update);
+    onThemeChange(update);
+    update();
+  </script>
+</body>
+</html>

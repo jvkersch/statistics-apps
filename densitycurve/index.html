@@ -1,0 +1,76 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Density Curve</title>
+  <link rel="stylesheet" href="../style.css">
+  <script src="https://cdn.jsdelivr.net/npm/plotly.js-dist-min@2.35.2/plotly.min.js"></script>
+  <script src="../common.js"></script>
+  <script src="data.js"></script>
+</head>
+<body>
+  <main class="app">
+    <a class="back" href="../">← All apps</a>
+    <h1>The density as a limit of histograms</h1>
+    <p class="lead">
+      With few samples a histogram is ragged. As the sample grows it settles onto
+      a smooth curve: the probability density of the population.
+    </p>
+
+    <div class="layout">
+      <aside class="card controls">
+        <div class="field">
+          <div class="field-head"><label for="n">Number of samples</label><output id="n-value"></output></div>
+          <input type="range" id="n" min="2" max="1000" step="1" value="50">
+        </div>
+        <label class="check"><input type="checkbox" id="density"> Show the density curve</label>
+
+        <div class="notes">
+          <p class="try">Try this</p>
+          <ol>
+            <li>Start with a handful of samples. Can you guess the shape of the population?</li>
+            <li>Turn on the density curve. How many samples until the histogram follows it closely?</li>
+          </ol>
+        </div>
+      </aside>
+
+      <div class="content">
+        <section class="card">
+          <h2 id="title"></h2>
+          <p class="card-sub">Bar heights are scaled so the total area is 1, like a density.</p>
+          <div id="plot" class="plot tall"></div>
+        </section>
+      </div>
+    </div>
+  </main>
+
+  <script>
+    function update() {
+      const c = colors();
+      const n = value("n");
+      const h = histogram(SAMPLES.slice(0, n), 50);
+      const traces = [
+        { x: h.x, y: h.y, width: h.width, type: "bar",
+          marker: { color: c.series1, line: { color: c.surface, width: 1 } },
+          hovertemplate: "%{x}<br>density %{y:.4f}<extra></extra>" },
+      ];
+      if (document.getElementById("density").checked) {
+        traces.push({ x: DENSITY_X, y: DENSITY_Y, mode: "lines", hoverinfo: "skip",
+                      line: { color: c.series2, width: 2.5 } });
+      }
+      document.getElementById("title").textContent = n + " samples";
+      plot("plot", traces, {
+        barcornerradius: 2,
+        xaxis: { range: [85, 150] },
+        yaxis: { title: "Density", rangemode: "tozero" },
+      });
+    }
+
+    bindSlider("n", update);
+    document.getElementById("density").addEventListener("change", update);
+    onThemeChange(update);
+    update();
+  </script>
+</body>
+</html>
