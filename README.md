@@ -12,6 +12,16 @@ Serve the repository root with any static web server, e.g.
 
 and open <http://localhost:8000>.
 
+## Testing
+
+`smoke-test.js` loads every page in headless Chromium and fails on JavaScript
+errors or resources that fail to load. It runs in CI on every push; to run it
+locally:
+
+    npm install
+    npx playwright install chromium
+    npm test
+
 ## Publishing
 
 The workflow in `.github/workflows/pages.yml` publishes the repository root to

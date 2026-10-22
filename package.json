@@ -1,0 +1,10 @@
+{
+  "name": "statistics-apps",
+  "private": true,
+  "scripts": {
+    "test": "node smoke-test.js"
+  },
+  "devDependencies": {
+    "playwright": "^1.64.1"
+  }
+}
