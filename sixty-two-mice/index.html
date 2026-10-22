@@ -1,599 +1,421 @@
 <!doctype html>
 <html lang="en">
 <head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Sixty-Two Mice</title>
-<link rel="icon" href="../favicon.svg" type="image/svg+xml">
-
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=Source+Sans+3:wght@400;600&family=Zilla+Slab:wght@600;700&display=swap">
-
-<style>
-:root{
-  --ground:#FBF9FA; --surface:#FFFFFF; --sunken:#F3EFF4;
-  --ink:#231C2E; --ink-2:#4E4660; --ink-3:#77708A;
-  --line:#E5DEE9; --line-2:#D2C8DA;
-  --violet:#6355C4; --violet-soft:#EFECFB;
-  --eosin:#C0356E; --eosin-soft:#F9DDE8;
-  --ochre:#9A6B12;
-  --focus:#6355C4;
-  --shadow:0 1px 2px rgba(35,28,46,.06), 0 8px 24px -12px rgba(35,28,46,.18);
-}
-@media (prefers-color-scheme: dark){
-  :root:not([data-theme="light"]){
-    --ground:#15121C; --surface:#1E1929; --sunken:#191424;
-    --ink:#EDE8F2; --ink-2:#BDB4CC; --ink-3:#8F86A3;
-    --line:#2E2740; --line-2:#3D3452;
-    --violet:#8878DC; --violet-soft:#241E38;
-    --eosin:#DB5F8B; --eosin-soft:#331A28;
-    --ochre:#D2A048;
-    --focus:#8878DC;
-    --shadow:0 1px 2px rgba(0,0,0,.4), 0 8px 24px -12px rgba(0,0,0,.7);
-  }
-}
-:root[data-theme="dark"]{
-  --ground:#15121C; --surface:#1E1929; --sunken:#191424;
-  --ink:#EDE8F2; --ink-2:#BDB4CC; --ink-3:#8F86A3;
-  --line:#2E2740; --line-2:#3D3452;
-  --violet:#8878DC; --violet-soft:#241E38;
-  --eosin:#DB5F8B; --eosin-soft:#331A28;
-  --ochre:#D2A048;
-  --focus:#8878DC;
-  --shadow:0 1px 2px rgba(0,0,0,.4), 0 8px 24px -12px rgba(0,0,0,.7);
-}
-
-*{box-sizing:border-box}
-body{
-  margin:0; background:var(--ground); color:var(--ink);
-  font-family:"Source Sans 3",system-ui,-apple-system,"Segoe UI",sans-serif;
-  font-size:16px; line-height:1.55; -webkit-font-smoothing:antialiased;
-}
-h1,h2,h3{font-family:"Zilla Slab",Georgia,serif; font-weight:600; text-wrap:balance; margin:0}
-.mono{font-family:"IBM Plex Mono",ui-monospace,SFMono-Regular,Menlo,monospace; font-variant-numeric:tabular-nums}
-:focus-visible{outline:2px solid var(--focus); outline-offset:2px; border-radius:4px}
-.vh{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
-
-/* ---------- shell ---------- */
-.wrap{max-width:960px; margin:0 auto; padding:0 20px 72px}
-header.bar{
-  display:flex; flex-wrap:wrap; gap:16px; align-items:center; justify-content:space-between;
-  max-width:960px; margin:0 auto; padding:20px 20px 18px;
-}
-.brand{display:flex; align-items:center; gap:11px; min-width:0}
-.brand h1{font-size:19px; letter-spacing:-.01em; white-space:nowrap}
-.brand .sub{color:var(--ink-3); font-size:13px; white-space:nowrap}
-.glyph{width:26px; height:26px; flex:none; display:grid; grid-template:repeat(2,1fr)/repeat(2,1fr); gap:2px}
-.glyph i{border-radius:2px; background:var(--violet-soft); border:1px solid var(--line-2)}
-.glyph i:first-child{background:var(--eosin); border-color:var(--eosin)}
-
-.modes{display:flex; gap:2px; padding:3px; background:var(--sunken); border:1px solid var(--line); border-radius:9px}
-.modes button{
-  font:600 13px/1 "Source Sans 3",sans-serif; color:var(--ink-2); cursor:pointer;
-  background:none; border:0; padding:8px 13px; border-radius:6px;
-}
-.modes button[aria-current="true"]{background:var(--surface); color:var(--ink); box-shadow:var(--shadow)}
-.modes button:hover:not([aria-current="true"]){color:var(--ink)}
-
-/* ---------- panels ---------- */
-.panel{
-  background:var(--surface); border:1px solid var(--line); border-radius:14px;
-  padding:22px 24px; box-shadow:var(--shadow);
-}
-.stack{display:flex; flex-direction:column; gap:20px}
-.eyebrow{
-  font:600 11px/1 "IBM Plex Mono",monospace; letter-spacing:.11em; text-transform:uppercase;
-  color:var(--ink-3); margin:0 0 14px;
-}
-.lede{color:var(--ink-2); max-width:62ch; margin:0}
-
-/* ---------- the 62 cards ---------- */
-.plate{
-  display:grid; grid-template-columns:repeat(auto-fit,minmax(40px,1fr));
-  gap:8px; margin:18px 0 4px; max-width:660px;
-}
-.mouse{
-  aspect-ratio:3/4; border-radius:5px; display:grid; place-items:center;
-  border:1.5px solid var(--line-2); background:var(--sunken);
-  transition:background .12s ease, border-color .12s ease;
-}
-.mouse .dot{width:7px; height:7px; border-radius:50%; background:var(--ink-3)}
-.mouse.exp{border-color:var(--eosin); border-width:2px; background:var(--eosin-soft)}
-.mouse.exp .dot{background:var(--eosin)}
-.mouse.tum .dot{width:9px; height:9px}
-.mouse.exp.tum{background:var(--eosin); border-color:var(--eosin); box-shadow:0 0 0 2px var(--surface),0 0 0 3.5px var(--eosin)}
-.mouse.exp.tum .dot{background:var(--surface)}
-.mouse.gf.tum{background:var(--violet); border-color:var(--violet)}
-.mouse.gf.tum .dot{background:var(--surface)}
-
-.key{display:flex; flex-wrap:wrap; gap:8px 20px; margin-top:20px; font-size:13.5px; color:var(--ink-2)}
-.key > span{display:flex; align-items:center; gap:8px}
-.key .lab{display:block}
-.swatch{width:15px; height:20px; border-radius:4px; border:1.5px solid var(--line-2); background:var(--sunken); flex:none; display:grid; place-items:center}
-.swatch i{width:7px;height:7px;border-radius:50%;background:var(--ink-3)}
-.swatch.exp{border-color:var(--eosin); border-width:2px; background:var(--eosin-soft)}
-.swatch.exp i{background:var(--eosin)}
-.swatch.gftum{background:var(--violet); border-color:var(--violet)} .swatch.gftum i{background:var(--surface)}
-.swatch.exptum{background:var(--eosin); border-color:var(--eosin)} .swatch.exptum i{background:var(--surface)}
-
-/* ---------- tables ---------- */
-.tablewrap{overflow-x:auto}
-table.ct{border-collapse:collapse; font-size:14.5px; min-width:340px}
-table.ct th,table.ct td{padding:9px 16px; text-align:right; border-bottom:1px solid var(--line)}
-table.ct thead th{
-  font:600 11px/1.4 "IBM Plex Mono",monospace; letter-spacing:.08em; text-transform:uppercase;
-  color:var(--ink-3); border-bottom:1px solid var(--line-2);
-}
-table.ct th:first-child,table.ct td:first-child{text-align:left; font-weight:600}
-table.ct td{font-family:"IBM Plex Mono",monospace; font-variant-numeric:tabular-nums}
-table.ct.totals tr:last-child td,table.ct.totals tr:last-child th{border-bottom:0; color:var(--ink-3)}
-table.ct tr:last-child td,table.ct tr:last-child th{border-bottom:0}
-td.hit{background:var(--eosin-soft); color:var(--eosin); font-weight:600; border-radius:4px}
-
-/* ---------- hero number ---------- */
-.step2{display:grid; grid-template-columns:minmax(0,auto) minmax(0,1fr); gap:14px 40px; align-items:center}
-@media (max-width:760px){.step2{grid-template-columns:minmax(0,1fr)}}
-.hero{display:flex; align-items:baseline; gap:16px; flex-wrap:wrap}
-.hero .n{font-family:"IBM Plex Mono",monospace; font-weight:600; font-size:60px; line-height:1; color:var(--eosin); font-variant-numeric:tabular-nums}
-.hero p{margin:0; color:var(--ink-2); max-width:34ch}
-
-.actions{display:flex; flex-wrap:wrap; gap:10px; margin-top:22px; align-items:center}
-button.btn{
-  font:600 15px/1 "Source Sans 3",sans-serif; cursor:pointer; padding:12px 20px;
-  border-radius:9px; border:1px solid var(--line-2); background:var(--surface); color:var(--ink);
-}
-button.btn:hover{border-color:var(--ink-3)}
-button.btn.primary{background:var(--eosin); border-color:var(--eosin); color:#fff}
-button.btn.primary:hover{filter:brightness(1.08)}
-button.btn:disabled{opacity:.5; cursor:not-allowed; filter:none}
-.note{font-size:13.5px; color:var(--ink-3)}
-.note strong{color:var(--ink-2)}
-
-/* ---------- teacher entry ---------- */
-.entryrow{display:flex; flex-wrap:wrap; gap:10px; align-items:center}
-input.tin{
-  width:88px; font:600 20px/1 "IBM Plex Mono",monospace; text-align:center;
-  padding:11px 8px; border-radius:9px; border:1px solid var(--line-2);
-  background:var(--surface); color:var(--ink); font-variant-numeric:tabular-nums;
-}
-input.tin::-webkit-outer-spin-button,input.tin::-webkit-inner-spin-button{-webkit-appearance:none;margin:0}
-input.tin[type=number]{-moz-appearance:textfield}
-.pad{display:flex; flex-wrap:wrap; gap:5px; margin-top:14px}
-.pad button{
-  font:500 15px/1 "IBM Plex Mono",monospace; cursor:pointer; min-width:40px;
-  padding:10px 6px; border-radius:8px; border:1px solid var(--line-2);
-  background:var(--sunken); color:var(--ink); font-variant-numeric:tabular-nums;
-}
-.pad button:hover{border-color:var(--eosin); color:var(--eosin)}
-.pad button.tail{border-style:dashed}
-.entryfoot{display:flex; flex-wrap:wrap; gap:16px; align-items:center; margin-top:16px}
-
-/* ---------- teacher stats + charts ---------- */
-.stats{display:grid; grid-template-columns:repeat(auto-fit,minmax(150px,1fr)); gap:1px; background:var(--line); border:1px solid var(--line); border-radius:14px; overflow:hidden}
-.stat{background:var(--surface); padding:16px 18px}
-.stat .lab{font:600 10.5px/1 "IBM Plex Mono",monospace; letter-spacing:.1em; text-transform:uppercase; color:var(--ink-3)}
-.stat .val{font-family:"IBM Plex Mono",monospace; font-weight:600; font-size:29px; line-height:1.25; font-variant-numeric:tabular-nums}
-.stat .val.e{color:var(--eosin)} .stat .val.o{color:var(--ochre)}
-.stat .cap{font-size:12.5px; color:var(--ink-3)}
-
-.chartwrap{position:relative}
-svg.chart{display:block; width:100%; height:auto; overflow:visible}
-svg.chart text{font-family:"IBM Plex Mono",monospace; font-variant-numeric:tabular-nums}
-.tip{
-  position:absolute; pointer-events:none; opacity:0; transition:opacity .1s;
-  background:var(--ink); color:var(--ground); font-size:12.5px; line-height:1.45;
-  padding:7px 10px; border-radius:7px; white-space:nowrap; z-index:5;
-  font-family:"IBM Plex Mono",monospace; transform:translate(-50%,-130%);
-}
-.tip.on{opacity:1}
-.empty{padding:44px 8px; text-align:center; color:var(--ink-3)}
-
-.legend{display:flex; flex-wrap:wrap; gap:8px 20px; margin-top:16px; font-size:13.5px; color:var(--ink-2)}
-.legend span{display:flex; align-items:center; gap:8px}
-.legend i{width:12px; height:12px; border-radius:3px; flex:none}
-.legend i.dash{width:18px; height:0; border-top:2px dashed var(--ochre); border-radius:0}
-
-.foot{margin-top:26px; padding-top:18px; border-top:1px solid var(--line); font-size:13px; color:var(--ink-3); display:flex; flex-wrap:wrap; gap:14px; justify-content:space-between}
-.linkish{background:none; border:0; padding:0; font:inherit; color:var(--ink-3); text-decoration:underline; text-underline-offset:2px; cursor:pointer}
-.linkish:hover{color:var(--eosin)}
-[hidden]{display:none !important}
-@media (prefers-reduced-motion:reduce){*{transition:none !important; animation:none !important}}
-</style>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Sixty-Two Mice</title>
+  <link rel="icon" href="../favicon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="../style.css">
+  <script src="https://cdn.jsdelivr.net/npm/plotly.js-dist-min@2.35.2/plotly.min.js"></script>
+  <script src="../common.js"></script>
+  <style>
+    [hidden] {
+      display: none !important;
+    }
+    /* The 62 cards: E. coli mice are orange, germ-free mice blue; a filled
+       card means the mouse developed a tumour. */
+    .plate {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(36px, 1fr));
+      gap: 8px;
+      margin: 8px 0 16px;
+    }
+    .mouse, .chip {
+      aspect-ratio: 3 / 4;
+      border: 1.5px solid var(--axis);
+      border-radius: 5px;
+    }
+    .mouse.exp, .chip.exp {
+      border: 2px solid var(--series-2);
+      background: color-mix(in srgb, var(--series-2) 15%, transparent);
+    }
+    .mouse.gf.tum, .chip.gf.tum {
+      border-color: var(--series-1);
+      background: var(--series-1);
+    }
+    .mouse.exp.tum, .chip.exp.tum {
+      background: var(--series-2);
+    }
+    .key {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px 20px;
+      font-size: 13px;
+      color: var(--ink-2);
+    }
+    .key > span {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .chip {
+      width: 14px;
+    }
+    td.hit {
+      color: var(--series-2);
+      font-weight: 600;
+    }
+    tr.total td, tr.total th {
+      color: var(--muted);
+    }
+    .pad {
+      display: grid;
+      grid-template-columns: repeat(7, 1fr);
+      gap: 6px;
+      margin-top: 12px;
+    }
+    .pad button {
+      padding: 8px 0;
+      font-variant-numeric: tabular-nums;
+    }
+    .pad button.tail {
+      border-color: var(--series-2);
+    }
+    .entry {
+      display: flex;
+      gap: 8px;
+    }
+    .entry input {
+      width: 5em;
+      padding: 8px 10px;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      background: var(--surface);
+      color: var(--ink);
+      font: inherit;
+      font-variant-numeric: tabular-nums;
+    }
+    .empty {
+      padding: 40px 8px;
+      text-align: center;
+      color: var(--muted);
+    }
+  </style>
 </head>
 <body>
+  <main class="app">
+    <a class="back" href="../">← All apps</a>
+    <h1>Sixty-two mice</h1>
+    <p class="lead">
+      Sixty-two cards, one per mouse. Thirteen are dealt to the <em>E.&nbsp;coli</em>
+      group, and then twenty-seven mice develop a tumour, chosen completely at random
+      with no regard for who was exposed. Exposure is fixed by the experiment; only
+      the tumours are shuffled. That is the null hypothesis, made concrete.
+    </p>
 
-<header class="bar">
-  <div class="brand">
-    <span class="glyph" aria-hidden="true"><i></i><i></i><i></i><i></i></span>
-    <div>
-      <h1>Sixty-Two Mice</h1>
-      <div class="sub">Probability &amp; Statistics &middot; Chapter 1</div>
-    </div>
-  </div>
-  <nav class="modes" id="modes" aria-label="View" hidden>
-    <button id="m-student" type="button">The draw</button>
-    <button id="m-teacher" type="button">Class results</button>
-  </nav>
-</header>
-
-<main class="wrap">
-
-  <!-- ============ STUDENT ============ -->
-  <section id="view-student" class="stack">
-    <div class="panel">
-      <p class="eyebrow">Step 1 &middot; your own shuffle</p>
-      <p class="lede">Sixty-two cards, one per mouse. Thirteen are dealt to the
-        <em>E.&nbsp;coli</em> group, and then twenty-seven mice develop a tumour &mdash;
-        chosen completely at random, with no regard for who was exposed.</p>
-      <div class="plate" id="plate"></div>
-      <div class="key">
-        <span><i class="swatch"></i><span class="lab">Germ-free, no tumour</span></span>
-        <span><i class="swatch gftum"><i></i></i><span class="lab">Germ-free, tumour</span></span>
-        <span><i class="swatch exp"><i></i></i><span class="lab"><em>E.&nbsp;coli</em>, no tumour</span></span>
-        <span><i class="swatch exptum"><i></i></i><span class="lab"><em>E.&nbsp;coli</em> <strong>and</strong> tumour</span></span>
-      </div>
+    <div class="tabs" id="modes" hidden>
+      <button id="m-student" type="button">The draw</button>
+      <button id="m-teacher" type="button">Class results</button>
     </div>
 
-    <div class="panel">
-      <p class="eyebrow">Step 2 &middot; your table</p>
-      <div class="step2">
-        <div class="tablewrap">
-          <table class="ct totals">
-            <thead><tr><th scope="col">Response</th><th scope="col">E. coli</th><th scope="col">Germ-free</th><th scope="col">Total</th></tr></thead>
-            <tbody>
-              <tr><th scope="row">Tumour</th><td class="hit mono" id="c-a">&mdash;</td><td id="c-b">&mdash;</td><td>27</td></tr>
-              <tr><th scope="row">No tumour</th><td id="c-c">&mdash;</td><td id="c-d">&mdash;</td><td>35</td></tr>
-              <tr><th scope="row">Total</th><td>13</td><td>49</td><td>62</td></tr>
-            </tbody>
-          </table>
+    <!-- Student view -->
+    <div class="layout" id="view-student">
+      <aside class="card controls">
+        <div class="buttons">
+          <button class="primary" id="redraw" type="button">Shuffle again</button>
         </div>
-        <div class="hero">
-          <span class="n" id="hero-t">&mdash;</span>
-          <p>of your 13 exposed mice developed a tumour. Call this number <strong>T</strong>.</p>
+        <p class="formula" style="margin-top: 10px">
+          Read your T out when your lecturer asks for it.
+        </p>
+
+        <div class="notes">
+          <p class="try">Try this</p>
+          <ol>
+            <li>The real experiment found T = 8. Shuffle a few times: how often
+              does chance alone hand you 8 or more?</li>
+            <li>Once the whole class has pooled its draws, that proportion is an
+              estimate of P(T ≥ 8), the answer to "could this result be due to
+              chance?"</li>
+          </ol>
+        </div>
+      </aside>
+
+      <div class="content">
+        <section class="card">
+          <h2>Your shuffle</h2>
+          <div class="plate" id="plate"></div>
+          <div class="key">
+            <span><i class="chip gf"></i><span>Germ-free, no tumour</span></span>
+            <span><i class="chip gf tum"></i><span>Germ-free, tumour</span></span>
+            <span><i class="chip exp"></i><span><em>E.&nbsp;coli</em>, no tumour</span></span>
+            <span><i class="chip exp tum"></i><span><em>E.&nbsp;coli</em> and tumour</span></span>
+          </div>
+        </section>
+
+        <div class="row" style="align-items: start">
+          <section class="card tiles">
+            <div class="tile">
+              <div class="label">T</div>
+              <div class="value" id="hero-t">–</div>
+              <div class="detail">of your 13 exposed mice developed a tumour</div>
+            </div>
+          </section>
+
+          <section class="card">
+            <h2>Your table</h2>
+            <table>
+              <thead><tr><th>Response</th><th>E. coli</th><th>Germ-free</th><th>Total</th></tr></thead>
+              <tbody>
+                <tr><th>Tumour</th><td class="hit" id="c-a">–</td><td id="c-b">–</td><td>27</td></tr>
+                <tr><th>No tumour</th><td id="c-c">–</td><td id="c-d">–</td><td>35</td></tr>
+                <tr class="total"><th>Total</th><td>13</td><td>49</td><td>62</td></tr>
+              </tbody>
+            </table>
+          </section>
         </div>
       </div>
-      <div class="actions">
-        <button class="btn primary" id="redraw" type="button">Shuffle again</button>
-        <span class="note">Read your <strong>T</strong> out when your lecturer asks for it.</span>
-      </div>
     </div>
 
-    <div class="panel">
-      <p class="eyebrow">Step 3 &middot; what to watch for</p>
-      <p class="lede">The real experiment found <strong>T&nbsp;=&nbsp;8</strong>. Shuffle a few times:
-        how often does pure chance alone hand you 8 or more? Once the whole class has pooled its
-        draws, that proportion is an estimate of <span class="mono">P(T &ge; 8)</span> &mdash; the
-        answer to &ldquo;could this result be due to chance?&rdquo;</p>
-    </div>
-  </section>
+    <!-- Teacher view, only reachable via #class -->
+    <div class="layout" id="view-teacher" hidden>
+      <aside class="card controls">
+        <p class="group-title">Add a draw</p>
+        <div class="entry" style="margin-top: 10px">
+          <input id="tin" aria-label="Value of T to add" type="number" min="0" max="13" step="1" inputmode="numeric" placeholder="T" autocomplete="off">
+          <button class="primary" id="add" type="button">Add</button>
+        </div>
+        <p class="formula" id="entry-note" style="margin-top: 8px">Type a number and press Enter, or tap a key below.</p>
+        <div class="pad" id="pad"></div>
+        <div class="buttons" style="margin-top: 16px">
+          <button id="undo" type="button">Undo last</button>
+          <button id="reset" type="button">Clear the tally</button>
+        </div>
+        <p class="formula" id="store-note" style="margin-top: 10px"></p>
+      </aside>
 
-  <!-- ============ TEACHER ============ -->
-  <section id="view-teacher" class="stack" hidden>
-    <div class="panel">
-      <p class="eyebrow">Add a draw</p>
-      <div class="entryrow">
-        <label class="vh" for="tin">Value of T to add</label>
-        <input id="tin" class="tin" type="number" min="0" max="13" step="1" inputmode="numeric" placeholder="T" autocomplete="off">
-        <button class="btn primary" id="add" type="button">Add</button>
-        <span class="note" id="entry-note">Type a number and press Enter, or tap a key below.</span>
+      <div class="content">
+        <section class="card tiles">
+          <div class="tile">
+            <div class="label">Draws</div>
+            <div class="value" id="s-n">0</div>
+            <div class="detail">pooled so far</div>
+          </div>
+          <div class="tile">
+            <div class="label">With T ≥ 8</div>
+            <div class="value" id="s-tail">0</div>
+            <div class="detail">as extreme as the real study</div>
+          </div>
+          <div class="tile">
+            <div class="label">Class estimate</div>
+            <div class="value" id="s-p">–</div>
+            <div class="detail">P(T ≥ 8) from these draws</div>
+          </div>
+          <div class="tile">
+            <div class="label">Exact answer</div>
+            <div class="value">0.124</div>
+            <div class="detail">hypergeometric</div>
+          </div>
+        </section>
+
+        <section class="card">
+          <h2>Distribution of T across the class</h2>
+          <p class="card-sub">
+            <span class="swatch" style="background: var(--series-1)"></span>T &lt; 8
+            <span class="swatch" style="background: var(--series-2); margin-left: 12px"></span>T ≥ 8, at least as extreme as the real study
+          </p>
+          <div class="empty" id="hist-empty">No draws yet. Bars appear here as you add them.</div>
+          <div id="hist" class="plot short" hidden></div>
+        </section>
+
+        <section class="card">
+          <h2>Running estimate of P(T ≥ 8)</h2>
+          <p class="card-sub">
+            <span class="swatch" style="background: var(--series-2)"></span>class estimate
+            <span class="swatch dashed" style="color: var(--ink-2); margin-left: 12px"></span>exact value, 0.1239
+          </p>
+          <div class="empty" id="line-empty">The curve starts once you add the first draw.</div>
+          <div id="line" class="plot short" hidden></div>
+        </section>
+
+        <section class="card">
+          <h2>Every draw</h2>
+          <table id="tallytable"><thead><tr><th>T</th><th>Students</th><th>Share</th></tr></thead><tbody></tbody></table>
+          <p class="card-sub" style="margin: 12px 0 0" id="order-note"></p>
+        </section>
       </div>
-      <div class="pad" id="pad"></div>
-      <div class="entryfoot">
-        <button class="linkish" id="undo" type="button">Undo last</button>
-        <button class="linkish" id="reset" type="button">Clear the tally</button>
-      </div>
     </div>
+  </main>
 
-    <div class="stats">
-      <div class="stat"><div class="lab">Draws</div><div class="val" id="s-n">0</div><div class="cap">pooled so far</div></div>
-      <div class="stat"><div class="lab">With T &ge; 8</div><div class="val e" id="s-tail">0</div><div class="cap">as extreme as the real study</div></div>
-      <div class="stat"><div class="lab">Class estimate</div><div class="val e" id="s-p">&mdash;</div><div class="cap">P(T &ge; 8) from these draws</div></div>
-      <div class="stat"><div class="lab">Exact answer</div><div class="val o">0.124</div><div class="cap">hypergeometric</div></div>
-    </div>
+  <script>
+    const N_MICE = 62, N_EXPOSED = 13, N_TUMOUR = 27, OBSERVED = 8, EXACT = 0.1239379;
+    const STORE = "sixtyTwoMice.tally";
+    const $ = (id) => document.getElementById(id);
 
-    <div class="panel">
-      <p class="eyebrow">Where the class landed</p>
-      <h2 style="font-size:19px; margin-bottom:2px">Distribution of T across the class</h2>
-      <p class="note" style="margin:0 0 8px">Each bar counts the students who drew that value of T.</p>
-      <div class="chartwrap" id="hist-wrap">
-        <div class="empty" id="hist-empty">No draws yet. Bars appear here as you add them.</div>
-        <svg class="chart" id="hist" viewBox="0 0 720 300" role="img" aria-label="Histogram of T across the class" hidden></svg>
-        <div class="tip" id="hist-tip"></div>
-      </div>
-      <div class="legend">
-        <span><i style="background:var(--violet)"></i> T &lt; 8</span>
-        <span><i style="background:var(--eosin)"></i> T &ge; 8 &mdash; at least as extreme as the real study</span>
-      </div>
-    </div>
-
-    <div class="panel">
-      <p class="eyebrow">Chance settling down</p>
-      <h2 style="font-size:19px; margin-bottom:2px">Running estimate of P(T &ge; 8)</h2>
-      <p class="note" style="margin:0 0 8px">The share of draws so far that reached 8 or more, recomputed after every entry.</p>
-      <div class="chartwrap" id="line-wrap">
-        <div class="empty" id="line-empty">The curve starts once you add the first draw.</div>
-        <svg class="chart" id="line" viewBox="0 0 720 300" role="img" aria-label="Running estimate of P(T greater than or equal to 8)" hidden></svg>
-        <div class="tip" id="line-tip"></div>
-      </div>
-      <div class="legend">
-        <span><i style="background:var(--eosin)"></i> Class estimate</span>
-        <span><i class="dash"></i> Exact value, 0.1239</span>
-      </div>
-    </div>
-
-    <div class="panel">
-      <p class="eyebrow">Every draw</p>
-      <div class="tablewrap"><table class="ct" id="tallytable"><thead><tr><th scope="col">T</th><th scope="col">Students</th><th scope="col">Share</th></tr></thead><tbody></tbody></table></div>
-      <p class="note" style="margin:14px 0 0" id="order-note"></p>
-    </div>
-  </section>
-
-  <div class="foot" style="max-width:none">
-    <span>Exposure is fixed by the experiment; only the tumours are shuffled. That is the null hypothesis, made concrete.</span>
-    <span id="store-note"></span>
-  </div>
-</main>
-
-<script>
-const N_MICE = 62, N_EXPOSED = 13, N_TUMOUR = 27, OBSERVED = 8, EXACT = 0.1239379;
-const STORE = 'sixtyTwoMice.tally';
-const $ = (id) => document.getElementById(id);
-
-/* ---------- tally: the teacher's own browser, nothing else ---------- */
-let entries = [];
-try {
-  const raw = localStorage.getItem(STORE);
-  const parsed = raw ? JSON.parse(raw) : [];
-  if (Array.isArray(parsed)) entries = parsed.filter(t => Number.isInteger(t) && t >= 0 && t <= N_EXPOSED);
-} catch (e) { entries = []; }
-let persists = true;
-function save(){
-  try { localStorage.setItem(STORE, JSON.stringify(entries)); }
-  catch (e) {
-    if (persists){ persists = false; $('store-note').textContent = 'Not saved — this browser blocks storage'; }
-  }
-}
-
-/* ---------- draw ---------- */
-function pick(k){
-  const idx = Array.from({length: N_MICE}, (_, i) => i);
-  for (let i = idx.length - 1; i > 0; i--){
-    const j = Math.floor(Math.random() * (i + 1));
-    [idx[i], idx[j]] = [idx[j], idx[i]];
-  }
-  return idx.slice(0, k);
-}
-function newDraw(){
-  const exposed = new Array(N_MICE).fill(false);
-  const tumour  = new Array(N_MICE).fill(false);
-  pick(N_EXPOSED).forEach(i => exposed[i] = true);
-  pick(N_TUMOUR).forEach(i => tumour[i] = true);
-  return { e: exposed, t: tumour };
-}
-function renderDraw(d){
-  let T = 0;
-  const plate = $('plate');
-  plate.textContent = '';
-  for (let i = 0; i < N_MICE; i++){
-    const exp = d.e[i], tum = d.t[i];
-    if (exp && tum) T++;
-    const cell = document.createElement('div');
-    cell.className = 'mouse ' + (exp ? 'exp' : 'gf') + (tum ? ' tum' : '');
-    cell.title = (exp ? 'Exposed to E. coli' : 'Germ-free') + (tum ? ' · tumour' : ' · no tumour');
-    if (tum){ const dot = document.createElement('span'); dot.className = 'dot'; cell.appendChild(dot); }
-    plate.appendChild(cell);
-  }
-  $('c-a').textContent = T;
-  $('c-b').textContent = N_TUMOUR - T;
-  $('c-c').textContent = N_EXPOSED - T;
-  $('c-d').textContent = N_MICE - N_EXPOSED - (N_TUMOUR - T);
-  $('hero-t').textContent = T;
-}
-
-/* ---------- charts ---------- */
-const W = 720, H = 300, M = { t: 16, r: 18, b: 44, l: 46 };
-const PW = W - M.l - M.r, PH = H - M.t - M.b;
-const svgEl = (n, a) => { const e = document.createElementNS('http://www.w3.org/2000/svg', n); for (const k in a) e.setAttribute(k, a[k]); return e; };
-function axisText(x, y, s, anchor){
-  const t = svgEl('text', { x, y, 'text-anchor': anchor || 'middle', fill: 'var(--ink-3)', 'font-size': '12' });
-  t.textContent = s; return t;
-}
-function niceTicks(max){
-  const step = max <= 5 ? 1 : max <= 10 ? 2 : max <= 25 ? 5 : Math.ceil(max / 5 / 10) * 10;
-  const out = []; for (let v = 0; v <= max; v += step) out.push(v); return out;
-}
-function topRounded(x, y, w, h, r){
-  r = Math.min(r, w / 2, h);
-  return `M${x} ${y + h} L${x} ${y + r} Q${x} ${y} ${x + r} ${y} `
-       + `L${x + w - r} ${y} Q${x + w} ${y} ${x + w} ${y + r} L${x + w} ${y + h} Z`;
-}
-function drawHist(counts){
-  const svg = $('hist'); svg.textContent = '';
-  const ticks = niceTicks(Math.max(1, ...counts));
-  const top = ticks[ticks.length - 1];
-  const y = v => M.t + PH - (v / top) * PH;
-  const bw = PW / (N_EXPOSED + 1);
-  ticks.forEach(v => {
-    svg.appendChild(svgEl('line', { x1: M.l, x2: M.l + PW, y1: y(v), y2: y(v), stroke: 'var(--line)', 'stroke-width': v === 0 ? 1.5 : 1 }));
-    svg.appendChild(axisText(M.l - 10, y(v) + 4, v, 'end'));
-  });
-  for (let k = 0; k <= N_EXPOSED; k++){
-    const cx = M.l + bw * (k + 0.5);
-    svg.appendChild(axisText(cx, M.t + PH + 20, k));
-    const c = counts[k] || 0;
-    if (!c) continue;
-    const h = Math.max(2, (c / top) * PH);
-    const bar = svgEl('path', {
-      d: topRounded(cx - bw * 0.36, M.t + PH - h, bw * 0.72, h, 4),
-      fill: k >= OBSERVED ? 'var(--eosin)' : 'var(--violet)'
-    });
-    bar.dataset.k = k; bar.dataset.c = c;
-    svg.appendChild(bar);
-  }
-  svg.appendChild(axisText(M.l + PW / 2, H - 6, 'T — exposed mice with a tumour'));
-  svg.appendChild(axisText(12, M.t + PH / 2, 'students', 'middle')).setAttribute('transform', `rotate(-90 12 ${M.t + PH / 2})`);
-  svg.removeAttribute('hidden'); $('hist-empty').hidden = true;
-}
-function drawLine(running){
-  const svg = $('line'); svg.textContent = '';
-  const n = running.length;
-  const top = Math.max(0.3, Math.ceil(Math.max(EXACT, ...running) * 10 + 1) / 10);
-  const x = i => M.l + (n === 1 ? PW / 2 : (i / (n - 1)) * PW);
-  const y = p => M.t + PH - (p / top) * PH;
-  for (let g = 0; g <= top + 1e-9; g += 0.1){
-    svg.appendChild(svgEl('line', { x1: M.l, x2: M.l + PW, y1: y(g), y2: y(g), stroke: 'var(--line)', 'stroke-width': g < 1e-9 ? 1.5 : 1 }));
-    svg.appendChild(axisText(M.l - 10, y(g) + 4, g.toFixed(1), 'end'));
-  }
-  svg.appendChild(svgEl('line', { x1: M.l, x2: M.l + PW, y1: y(EXACT), y2: y(EXACT), stroke: 'var(--ochre)', 'stroke-width': 2, 'stroke-dasharray': '6 5' }));
-  const lab = axisText(M.l + 6, y(EXACT) - 9, '0.1239', 'start'); lab.setAttribute('fill', 'var(--ochre)'); svg.appendChild(lab);
-  const d = running.map((p, i) => (i ? 'L' : 'M') + x(i).toFixed(1) + ' ' + y(p).toFixed(1)).join(' ');
-  svg.appendChild(svgEl('path', { d, fill: 'none', stroke: 'var(--eosin)', 'stroke-width': 2, 'stroke-linejoin': 'round', 'stroke-linecap': 'round' }));
-  svg.appendChild(svgEl('circle', { cx: x(n - 1), cy: y(running[n - 1]), r: 4.5, fill: 'var(--eosin)', stroke: 'var(--surface)', 'stroke-width': 2 }));
-  const step = Math.max(1, Math.round(n / 6));
-  for (let i = 0; i < n; i += step) svg.appendChild(axisText(x(i), M.t + PH + 20, i + 1));
-  svg.appendChild(axisText(M.l + PW / 2, H - 6, 'draws pooled'));
-  svg.removeAttribute('hidden'); $('line-empty').hidden = true;
-  svg._x = x; svg._y = y; svg._run = running;
-}
-function tipFor(wrapId, tipId, handler){
-  const wrap = $(wrapId), tip = $(tipId);
-  wrap.addEventListener('mousemove', e => {
-    const r = wrap.getBoundingClientRect();
-    const out = handler(e, r);
-    if (!out){ tip.classList.remove('on'); return; }
-    tip.textContent = out.text;
-    tip.style.left = out.x + 'px'; tip.style.top = out.y + 'px';
-    tip.classList.add('on');
-  });
-  wrap.addEventListener('mouseleave', () => tip.classList.remove('on'));
-}
-
-/* ---------- teacher view ---------- */
-function renderTally(){
-  const n = entries.length;
-  const counts = new Array(N_EXPOSED + 1).fill(0);
-  entries.forEach(t => counts[t]++);
-  const tail = entries.filter(t => t >= OBSERVED).length;
-
-  $('s-n').textContent = n;
-  $('s-tail').textContent = tail;
-  $('s-p').textContent = n ? (tail / n).toFixed(3) : '—';
-  $('undo').hidden = !n;
-  $('reset').hidden = !n;
-  $('order-note').textContent = n ? 'In the order you entered them: ' + entries.join(', ') : '';
-
-  const tb = $('tallytable').querySelector('tbody');
-  tb.textContent = '';
-  counts.forEach((c, k) => {
-    if (!c) return;
-    const tr = document.createElement('tr');
-    const th = document.createElement('th'); th.scope = 'row'; th.textContent = k;
-    if (k >= OBSERVED) th.style.color = 'var(--eosin)';
-    const td1 = document.createElement('td'); td1.textContent = c;
-    const td2 = document.createElement('td'); td2.textContent = (c / n * 100).toFixed(0) + '%';
-    tr.append(th, td1, td2); tb.appendChild(tr);
-  });
-
-  if (!n){
-    $('hist').setAttribute('hidden', ''); $('hist-empty').hidden = false;
-    $('line').setAttribute('hidden', ''); $('line-empty').hidden = false;
-    return;
-  }
-  drawHist(counts);
-  let hit = 0;
-  drawLine(entries.map(t => { if (t >= OBSERVED) hit++; return hit; }).map((h, i) => h / (i + 1)));
-}
-
-function addT(t){
-  if (!Number.isInteger(t) || t < 0 || t > N_EXPOSED){
-    $('entry-note').textContent = 'T has to be a whole number between 0 and 13.';
-    return false;
-  }
-  entries.push(t); save(); renderTally();
-  $('entry-note').textContent = 'Added T = ' + t + '.  n = ' + entries.length + '.';
-  return true;
-}
-
-/* ---------- mode ---------- */
-function setMode(m){
-  try { sessionStorage.setItem('sixtyTwoMice.mode', m); } catch (e) {}
-  $('view-student').hidden = (m !== 'student');
-  $('view-teacher').hidden = (m !== 'teacher');
-  $('m-student').setAttribute('aria-current', String(m === 'student'));
-  $('m-teacher').setAttribute('aria-current', String(m === 'teacher'));
-  if (m === 'teacher') $('tin').focus();
-}
-
-/* ---------- boot ---------- */
-(function init(){
-  renderDraw(newDraw());
-  $('redraw').addEventListener('click', () => renderDraw(newDraw()));
-
-  // the teacher's console lives behind #class; students never see it
-  const teacher = location.hash === '#class';
-  if (teacher){
-    $('modes').hidden = false;
-    $('m-student').addEventListener('click', () => setMode('student'));
-    $('m-teacher').addEventListener('click', () => setMode('teacher'));
-
-    const pad = $('pad');
-    for (let k = 0; k <= N_EXPOSED; k++){
-      const b = document.createElement('button');
-      b.type = 'button'; b.textContent = k;
-      if (k >= OBSERVED) b.className = 'tail';
-      b.title = k >= OBSERVED ? 'T = ' + k + ' — at least as extreme as the real study' : 'T = ' + k;
-      b.addEventListener('click', () => { addT(k); $('tin').focus(); });
-      pad.appendChild(b);
+    // The tally lives in the teacher's own browser, nothing else.
+    let entries = [];
+    try {
+      const raw = localStorage.getItem(STORE);
+      const parsed = raw ? JSON.parse(raw) : [];
+      if (Array.isArray(parsed)) entries = parsed.filter(t => Number.isInteger(t) && t >= 0 && t <= N_EXPOSED);
+    } catch (e) { entries = []; }
+    let persists = true;
+    function save() {
+      try { localStorage.setItem(STORE, JSON.stringify(entries)); }
+      catch (e) {
+        if (persists) { persists = false; $("store-note").textContent = "Not saved: this browser blocks storage."; }
+      }
     }
-    const commit = () => {
-      const v = $('tin').value.trim();
-      if (v === '') return;
-      if (addT(Number(v))) $('tin').value = '';
-      $('tin').focus();
-    };
-    $('add').addEventListener('click', commit);
-    $('tin').addEventListener('keydown', e => { if (e.key === 'Enter'){ e.preventDefault(); commit(); } });
-    $('undo').addEventListener('click', () => {
-      if (!entries.length) return;
-      const t = entries.pop(); save(); renderTally();
-      $('entry-note').textContent = 'Removed T = ' + t + '.  n = ' + entries.length + '.';
-      $('tin').focus();
-    });
-    $('reset').addEventListener('click', () => {
-      if (!entries.length) return;
-      if (!confirm('Clear all ' + entries.length + ' draws?')) return;
-      entries = []; save(); renderTally();
-      $('entry-note').textContent = 'Tally cleared.';
-      $('tin').focus();
-    });
 
-    renderTally();
-    let m = 'teacher';
-    try { m = sessionStorage.getItem('sixtyTwoMice.mode') || 'teacher'; } catch (e) {}
-    setMode(m);
-    if (entries.length) $('store-note').textContent = entries.length + ' draws restored from this browser';
-  } else {
-    setMode('student');
-  }
+    // Draw
+    function pick(k) {
+      const idx = Array.from({ length: N_MICE }, (_, i) => i);
+      for (let i = idx.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [idx[i], idx[j]] = [idx[j], idx[i]];
+      }
+      return idx.slice(0, k);
+    }
+    function newDraw() {
+      const exposed = new Array(N_MICE).fill(false);
+      const tumour = new Array(N_MICE).fill(false);
+      pick(N_EXPOSED).forEach(i => exposed[i] = true);
+      pick(N_TUMOUR).forEach(i => tumour[i] = true);
+      return { e: exposed, t: tumour };
+    }
+    function renderDraw(d) {
+      let T = 0;
+      const plate = $("plate");
+      plate.textContent = "";
+      for (let i = 0; i < N_MICE; i++) {
+        const exp = d.e[i], tum = d.t[i];
+        if (exp && tum) T++;
+        const cell = document.createElement("div");
+        cell.className = "mouse " + (exp ? "exp" : "gf") + (tum ? " tum" : "");
+        cell.title = (exp ? "Exposed to E. coli" : "Germ-free") + (tum ? " · tumour" : " · no tumour");
+        plate.appendChild(cell);
+      }
+      $("c-a").textContent = T;
+      $("c-b").textContent = N_TUMOUR - T;
+      $("c-c").textContent = N_EXPOSED - T;
+      $("c-d").textContent = N_MICE - N_EXPOSED - (N_TUMOUR - T);
+      $("hero-t").textContent = T;
+    }
 
-  tipFor('hist-wrap', 'hist-tip', (e, r) => {
-    const el = document.elementFromPoint(e.clientX, e.clientY);
-    if (!el || !el.dataset || el.dataset.k === undefined) return null;
-    const c = +el.dataset.c, n = entries.length;
-    return { text: 'T = ' + el.dataset.k + '  ·  ' + c + (c === 1 ? ' student' : ' students') + '  ·  ' + (c / n * 100).toFixed(0) + '%',
-             x: e.clientX - r.left, y: e.clientY - r.top };
-  });
-  tipFor('line-wrap', 'line-tip', (e, r) => {
-    const svg = $('line'); if (svg.hasAttribute('hidden') || !svg._run) return null;
-    const run = svg._run, n = run.length;
-    const at = (e.clientX - r.left) / r.width * W;
-    let best = 0, bd = Infinity;
-    for (let i = 0; i < n; i++){ const dd = Math.abs(svg._x(i) - at); if (dd < bd){ bd = dd; best = i; } }
-    return { text: 'after ' + (best + 1) + '  ·  P̂ = ' + run[best].toFixed(3),
-             x: svg._x(best) / W * r.width, y: svg._y(run[best]) / H * r.height };
-  });
-})();
-</script>
+    // Teacher view
+    function renderTally() {
+      const c = colors();
+      const n = entries.length;
+      const counts = new Array(N_EXPOSED + 1).fill(0);
+      entries.forEach(t => counts[t]++);
+      const tail = entries.filter(t => t >= OBSERVED).length;
+
+      $("s-n").textContent = n;
+      $("s-tail").textContent = tail;
+      $("s-p").textContent = n ? (tail / n).toFixed(3) : "–";
+      $("undo").hidden = !n;
+      $("reset").hidden = !n;
+      $("order-note").textContent = n ? "In the order you entered them: " + entries.join(", ") : "";
+
+      const tb = $("tallytable").querySelector("tbody");
+      tb.textContent = "";
+      counts.forEach((count, k) => {
+        if (!count) return;
+        const tr = document.createElement("tr");
+        const th = document.createElement("th"); th.textContent = k;
+        if (k >= OBSERVED) th.style.color = "var(--series-2)";
+        const td1 = document.createElement("td"); td1.textContent = count;
+        const td2 = document.createElement("td"); td2.textContent = (count / n * 100).toFixed(0) + "%";
+        tr.append(th, td1, td2); tb.appendChild(tr);
+      });
+
+      $("hist").hidden = $("line").hidden = !n;
+      $("hist-empty").hidden = $("line-empty").hidden = !!n;
+      if (!n) return;
+
+      const ks = seq(0, N_EXPOSED, N_EXPOSED + 1);
+      plot("hist", [{
+        x: ks, y: counts, type: "bar",
+        marker: { color: ks.map(k => (k >= OBSERVED ? c.series2 : c.series1)) },
+        hovertemplate: "T = %{x}: %{y} students<extra></extra>",
+      }], {
+        bargap: 0.25,
+        xaxis: { title: "T, exposed mice with a tumour", dtick: 1, range: [-0.5, N_EXPOSED + 0.5], showgrid: false },
+        yaxis: { title: "Students", rangemode: "tozero" },
+      });
+
+      let hit = 0;
+      const running = entries.map((t, i) => { if (t >= OBSERVED) hit++; return hit / (i + 1); });
+      plot("line", [{
+        x: seq(1, n, n), y: running, mode: n === 1 ? "markers" : "lines+markers",
+        line: { color: c.series2, width: 2 }, marker: { color: c.series2, size: 5 },
+        hovertemplate: "after %{x} draws: %{y:.3f}<extra></extra>",
+      }], {
+        xaxis: { title: "Draws pooled", rangemode: "tozero" },
+        yaxis: { title: "Estimate of P(T ≥ 8)", range: [0, Math.max(0.3, ...running) + 0.05] },
+        shapes: [{ type: "line", xref: "paper", x0: 0, x1: 1, y0: EXACT, y1: EXACT,
+                   line: { color: c.ink2, width: 1.5, dash: "dash" } }],
+      });
+    }
+
+    function addT(t) {
+      if (!Number.isInteger(t) || t < 0 || t > N_EXPOSED) {
+        $("entry-note").textContent = "T has to be a whole number between 0 and 13.";
+        return false;
+      }
+      entries.push(t); save(); renderTally();
+      $("entry-note").textContent = "Added T = " + t + ". n = " + entries.length + ".";
+      return true;
+    }
+
+    // Mode
+    function setMode(m) {
+      try { sessionStorage.setItem("sixtyTwoMice.mode", m); } catch (e) {}
+      $("view-student").hidden = (m !== "student");
+      $("view-teacher").hidden = (m !== "teacher");
+      $("m-student").classList.toggle("active", m === "student");
+      $("m-teacher").classList.toggle("active", m === "teacher");
+      // Plotly needs a visible container to size its charts.
+      if (m === "teacher") { renderTally(); $("tin").focus(); }
+    }
+
+    renderDraw(newDraw());
+    $("redraw").addEventListener("click", () => renderDraw(newDraw()));
+
+    // The teacher's console lives behind #class; students never see it.
+    if (location.hash === "#class") {
+      $("modes").hidden = false;
+      $("m-student").addEventListener("click", () => setMode("student"));
+      $("m-teacher").addEventListener("click", () => setMode("teacher"));
+
+      const pad = $("pad");
+      for (let k = 0; k <= N_EXPOSED; k++) {
+        const b = document.createElement("button");
+        b.type = "button"; b.textContent = k;
+        if (k >= OBSERVED) b.className = "tail";
+        b.title = k >= OBSERVED ? "T = " + k + ", at least as extreme as the real study" : "T = " + k;
+        b.addEventListener("click", () => { addT(k); $("tin").focus(); });
+        pad.appendChild(b);
+      }
+      const commit = () => {
+        const v = $("tin").value.trim();
+        if (v === "") return;
+        if (addT(Number(v))) $("tin").value = "";
+        $("tin").focus();
+      };
+      $("add").addEventListener("click", commit);
+      $("tin").addEventListener("keydown", e => { if (e.key === "Enter") { e.preventDefault(); commit(); } });
+      $("undo").addEventListener("click", () => {
+        if (!entries.length) return;
+        const t = entries.pop(); save(); renderTally();
+        $("entry-note").textContent = "Removed T = " + t + ". n = " + entries.length + ".";
+        $("tin").focus();
+      });
+      $("reset").addEventListener("click", () => {
+        if (!entries.length) return;
+        if (!confirm("Clear all " + entries.length + " draws?")) return;
+        entries = []; save(); renderTally();
+        $("entry-note").textContent = "Tally cleared.";
+        $("tin").focus();
+      });
+
+      let m = "teacher";
+      try { m = sessionStorage.getItem("sixtyTwoMice.mode") || "teacher"; } catch (e) {}
+      setMode(m);
+      if (entries.length) $("store-note").textContent = entries.length + " draws restored from this browser.";
+      onThemeChange(() => { if (!$("view-teacher").hidden) renderTally(); });
+    } else {
+      setMode("student");
+    }
+  </script>
 </body>
 </html>
